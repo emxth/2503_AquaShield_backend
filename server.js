@@ -1,40 +1,31 @@
-require('dotenv').config();
+import express from 'express'
+import cors from 'cors'
+import 'dotenv/config'
+import connectDB from './config/mongodb.js'
+import connectCloudinary from './config/cloudinary.js'
+import adminRouter from './routes/adminRoute.js'
+import userRouter from './routes/userRoute.js'
+import feoRouter from './routes/feoRoute.js'
 
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
 
-// Routes
-// .. Add your route imports here ..
-// const userRoutes = require('./routes/users');
+//app config
+const app = express()
+const port = process.env.PORT || 8081
+connectDB()
+connectCloudinary()
 
-const app = express();
-const PORT = process.env.PORT || 8081;
+//middlewares
+app.use(express.json())
+app.use(cors())
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
+//api endpoints
+app.use('/api/admin',adminRouter)
+app.use('/api/user',userRouter)
+app.use('/api/feo',feoRouter)
 
-// Database Connection
-mongoose.connect(process.env.MONGODB_URL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
-// Routes
-// .. Add your routes here ..
-// app.use('/api/users', userRoutes);
+app.get('/',(req,res)=>{
+  res.send('API Working')
+})
 
-// Example protected routes (keep these if you need them)
-// app.get('/api/private', auth, (req, res) => {
-//   res.json({ success: true, data: 'Protected route accessed' });
-// });
-
-// app.get('/api/admin', adminAuth, (req, res) => {
-//   res.json({ success: true, data: 'Admin route accessed' });
-// });
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(port, ()=> console.log("Server Started",port))
