@@ -1,29 +1,23 @@
-require('dotenv').config();
-
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv';
+dotenv.config();
+import connectDB from './config/mongodb.js'
 
 // Routes
-// .. Add your route imports here ..
-// const userRoutes = require('./routes/users');
+import speciesRoutes from "./routes/speciesRoutes.js";
 
-const app = express();
-const PORT = process.env.PORT || 8081;
-
-// Middleware
+// console.log("Mongo URI:", process.env.MONGODB_URL);  
+//app config
+const app = express()
 app.use(cors());
-app.use(bodyParser.json());
+const port = process.env.PORT || 8081
+connectDB()
 
-// Database Connection
-mongoose.connect(process.env.MONGODB_URL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
-// .. Add your routes here ..
-// app.use('/api/users', userRoutes);
+app.use("/species", speciesRoutes);
+
 
 // Example protected routes (keep these if you need them)
 // app.get('/api/private', auth, (req, res) => {
@@ -35,6 +29,6 @@ mongoose.connect(process.env.MONGODB_URL)
 // });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
