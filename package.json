@@ -18,6 +18,7 @@
     "express-async-handler": "^1.2.0",
     "mongoose": "^8.17.1",
     "multer": "^2.0.2",
+    "react-confirm-alert": "^3.0.6",
     "streamifier": "^0.1.1"
   }
 }
