@@ -102,3 +102,66 @@ export const deleteSpecies = async (req, res) => {
     res.status(500).json({ message: "Error deleting species", error });
   }
 };
+
+
+// Update Species
+export const updateSpecies = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find species by ID
+    const species = await Species.findById(id);
+    if (!species) return res.status(404).json({ message: "Species not found" });
+
+    // Update fields
+    const {
+      ScientificName,
+      CommonName,
+      SpeciesCategory,
+      ProtectionLevel,
+      Habitat,
+      updatedDate,
+      ProtectionStatus,
+      Description,
+    } = req.body;
+
+    species.ScientificName = ScientificName || species.ScientificName;
+    species.CommonName = CommonName || species.CommonName;
+    species.SpeciesCategory = SpeciesCategory || species.SpeciesCategory;
+    species.ProtectionLevel = ProtectionLevel || species.ProtectionLevel;
+    species.Habitat = Habitat || species.Habitat;
+    species.updatedDate = updatedDate || species.updatedDate;
+    
+    species.Description = Description || species.Description;
+
+    if (ProtectionStatus !== undefined) {
+      species.ProtectionStatus = ProtectionStatus === "true" || ProtectionStatus === true;
+    }
+
+    // Handle image if uploaded
+    if (req.file) {
+      const streamUpload = (req) =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "species-images" },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const result = await streamUpload(req);
+      species.ImageURL = result.secure_url;
+    }
+
+    // Save updated species
+    const updatedSpecies = await species.save();
+
+    res.status(200).json(updatedSpecies);
+  } catch (error) {
+    console.error("Error updating species:", error);
+    res.status(500).json({ message: "Failed to update species", error });
+  }
+};

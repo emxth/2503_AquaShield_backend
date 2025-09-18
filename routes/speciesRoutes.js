@@ -1,5 +1,5 @@
 import express from "express";
-import { addSpecies, getSpecies, getSpeciesById, deleteSpecies } from "../controllers/speciesController.js";
+import { addSpecies, getSpecies, getSpeciesById, deleteSpecies, updateSpecies } from "../controllers/speciesController.js";
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();
@@ -10,6 +10,7 @@ router.get("/getAllSpecies", getSpecies);
 
 router.get("/getOneSpecies/:id", getSpeciesById);
 router.delete("/deleteSpecies/:id", deleteSpecies);
+router.put("/updateSpecies/:id", upload.single("image"), updateSpecies);
 
 
 export default router;
