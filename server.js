@@ -6,6 +6,7 @@ import connectDB from './config/mongodb.js'
 
 // Routes
 import speciesRoutes from "./routes/speciesRoutes.js";
+import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 
 // console.log("Mongo URI:", process.env.MONGODB_URL);  
 //app config
@@ -17,6 +18,7 @@ connectDB()
 
 // Routes
 app.use("/species", speciesRoutes);
+app.use("/speciesRequest", speciesRequestRoutes);
 
 
 // Example protected routes (keep these if you need them)
