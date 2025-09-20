@@ -41,11 +41,17 @@ const reportSchema = new Schema({
         ref: 'species',
         required: true
     },
-    description: { type: String }
+    description: { type: String },
+    evidencePhotos: [
+        {
+            url: { type: String, required: true },
+            public_id: { type: String, required: true },
+        },
+    ],
 });
 
 // Add geospatial index for location
 incidentSchema.index({ location: "2dsphere" });
 
-export default model("Incident", incidentSchema);
+export default model("report", incidentSchema);
 
