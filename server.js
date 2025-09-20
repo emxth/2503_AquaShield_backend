@@ -4,6 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const { reportRouter } = require('./routes/reportRoues');
 
 // Routes
 // .. Add your route imports here ..
@@ -24,6 +25,8 @@ mongoose.connect(process.env.MONGODB_URL)
 // Routes
 // .. Add your routes here ..
 // app.use('/api/users', userRoutes);
+
+app.use('/api/report', reportRouter);
 
 // Example protected routes (keep these if you need them)
 // app.get('/api/private', auth, (req, res) => {

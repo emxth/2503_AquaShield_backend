@@ -46,8 +46,14 @@ const reportSchema = new Schema({
         {
             url: { type: String, required: true },
             public_id: { type: String, required: true },
+            resource_type: { type: String, enum: ["image", "video"], required: true },
         },
     ],
+    status: {
+        type: String,
+        enum: ["PENDING", "CONFIRMED", "REJECTED", "CANCELLED"],
+        default: "PENDING",
+    },
 });
 
 // Add geospatial index for location
