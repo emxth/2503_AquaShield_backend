@@ -1,7 +1,9 @@
-import { Schema, model } from "mongoose";
+//import { Schema, model } from "mongoose";
+import mongoose from "mongoose";
+const { Schema, model } = mongoose;
 
 const reportSchema = new Schema({
-    reporter: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    reporter: { type: mongoose.Types.ObjectId, ref: "User", required: true },
     location: {
         type: {
             type: String,
@@ -19,7 +21,7 @@ const reportSchema = new Schema({
         }
     },
     date: { type: Date, default: Date.now },
-    time: { type: TimeRanges, default: TimeRanges },
+    time: { type: Date, default: Date.now },
     incidentType: {
         type: String,
         enum: [
@@ -57,7 +59,7 @@ const reportSchema = new Schema({
 });
 
 // Add geospatial index for location
-incidentSchema.index({ location: "2dsphere" });
+reportSchema.index({ location: "2dsphere" });
 
-export default model("report", incidentSchema);
+export default model("report", reportSchema);
 

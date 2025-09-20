@@ -2,7 +2,8 @@ import dotenv from "dotenv";
 
 import express from 'express';
 import { connect } from 'mongoose';
-import { json } from 'body-parser';
+//import { json } from 'body-parser';
+import bodyParser from 'body-parser';
 import cors from 'cors';
 import { reportRouter } from "./routes/reportRoutes.js";
 
@@ -17,7 +18,8 @@ const PORT = process.env.PORT || 8081;
 
 // Middleware
 app.use(cors());
-app.use(json());
+//app.use(json());
+app.use(bodyParser.json());
 
 // Database Connection
 connect(process.env.MONGODB_URL)
