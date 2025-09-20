@@ -1,24 +1,26 @@
-require('dotenv').config();
+import dotenv from "dotenv";
 
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const { reportRouter } = require('./routes/reportRoues');
+import express from 'express';
+import { connect } from 'mongoose';
+import { json } from 'body-parser';
+import cors from 'cors';
+import { reportRouter } from "./routes/reportRoutes.js";
+
 
 // Routes
 // .. Add your route imports here ..
 // const userRoutes = require('./routes/users');
 
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8081;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(json());
 
 // Database Connection
-mongoose.connect(process.env.MONGODB_URL)
+connect(process.env.MONGODB_URL)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 

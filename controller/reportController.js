@@ -1,8 +1,8 @@
 import multer from "multer";
 import asyncHandler from "express-async-handler";
-import { create } from "../models/ReportModel";
 import mongoose from "mongoose";
 import { json } from "express";
+import ReportModel from "../models/ReportModel.js";
 
 
 //create a new report
@@ -19,7 +19,7 @@ const createNewReport = asyncHandler(async (req, res) => {
             resource_type: file.resource_type,
         }))
 
-        const newIncident = await create({
+        const newIncident = await ReportModel.create({
             reporter: req.user._id,
             location: JSON.parse(location),
             Date,
@@ -49,6 +49,6 @@ const createNewReport = asyncHandler(async (req, res) => {
         });
     }
 })
-module.export = {
+export {
     createNewReport
 };
