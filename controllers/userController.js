@@ -7,9 +7,9 @@ import { v2 as cloudinary } from 'cloudinary'
 //API tO register user
 const registerUser = async(req,res) =>{
     try {
-        const {firstname,lastname,username,contactNo,email,address,password}=req.body
+        const {firstname,lastname,email,password}=req.body
 
-        if(!firstname || !lastname || !username || !contactNo || !email || !address || !password){
+        if(!firstname || !lastname || !email || !password){
             return res.json({ success: false, message: "Missing details" });
         }
 
@@ -30,10 +30,7 @@ const registerUser = async(req,res) =>{
         const userData = {
             firstname,
             lastname,
-            username,
-            contactNo,
             email,
-            address,
             password: hashedPassword
         }
 
@@ -96,14 +93,14 @@ const getProfile = async(req,res)=>{
 const updateProfile = async (req,res) =>{
     try {
 
-        const {userId,firstname,lastname,username,contactNo,email,address} = req.body
+        const {userId,firstname,lastname,email} = req.body
         const imageFile = req.file
 
-        if(!firstname || !lastname || !username || !contactNo || !email || !address){
+        if(!firstname || !lastname || !email){
             return res.json({success: false, message: 'Data missing' })
         }
 
-        await userModel.findByIdAndUpdate(userId,{firstname,lastname,username,contactNo,email,address:JSON.parse(address)})
+        await userModel.findByIdAndUpdate(userId,{firstname,lastname,email})
         
         if(imageFile){
             //Upload image to cloudinary
@@ -120,5 +117,6 @@ const updateProfile = async (req,res) =>{
         res.status(500).json({ success: false, message: error.message });
     }
 }
+
 
 export {registerUser,loginUser,getProfile,updateProfile}

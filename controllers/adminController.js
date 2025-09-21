@@ -3,13 +3,13 @@ import bcrypt from 'bcrypt';
 import { v2 as cloudinary } from "cloudinary";
 import feoModel from "../models/feoModel.js";
 import jwt from 'jsonwebtoken'
+import userModel from "../models/userModel.js";
 
 // API for adding FEO
 const addfeo = async (req, res) => {
   try {
     const {
       fullname,
-      username,
       department,
       designation,
       employeeId,
@@ -18,43 +18,35 @@ const addfeo = async (req, res) => {
       email,
       officeContact,
       password,
-      isActive,
       date
     } = req.body;
 
-    // Get image files
-    const photoFile = req.files['photo']?.[0];
-    const officeIdFile = req.files['officeId']?.[0];
+    // ✅ multer puts the file here
+    const imageFile = req.file;
 
-    // ✅ Debug: log uploaded files
-    console.log('photoFile:', photoFile);
-    console.log('officeIdFile:', officeIdFile);
+    if (!imageFile) {
+      return res.json({ success: false, message: "Photo is required" });
+    }
 
     // Check required fields
-    if (
-      !fullname || !username || !department || !designation || !employeeId ||
-      !assignedArea || !nicNo || !email || !officeContact || !password ||
-      !isActive || !date || !photoFile || !officeIdFile
-    ) {
-      return res.status(400).json({ success: false, message: "Missing details or images" });
+    if (!fullname || !department || !designation || !employeeId || !assignedArea || !nicNo || !email || !officeContact || !password) {
+      return res.json({ success: false, message: "Missing details" });
     }
 
     // Validate email
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ success: false, message: "Please enter a valid email" });
+      return res.json({ success: false, message: "Please enter a valid email" });
     }
 
     // Validate password strength
     if (password.length < 8) {
-      return res.status(400).json({ success: false, message: "Please enter a strong password" });
+      return res.json({ success: false, message: "Please enter a strong password" });
     }
 
-    // ✅ Check if user already exists
-    const existingFeo = await feoModel.findOne({
-      $or: [{ username }, { email }, { nicNo }]
-    });
+    // Check for existing FEO
+    const existingFeo = await feoModel.findOne({ $or: [{ email }, { nicNo }] });
     if (existingFeo) {
-      return res.status(400).json({ success: false, message: 'Username, Email or NIC already exists' });
+      return res.status(400).json({ success: false, message: 'Email or NIC already exists' });
     }
 
     // Hash password
@@ -62,17 +54,13 @@ const addfeo = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // ✅ Upload to Cloudinary
-    const photoUpload = await cloudinary.uploader.upload(photoFile.path, { resource_type: "image" });
-    const officeIdUpload = await cloudinary.uploader.upload(officeIdFile.path, { resource_type: "image" });
-
+    const photoUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
     const photoUrl = photoUpload.secure_url;
-    const officeIdUrl = officeIdUpload.secure_url;
 
     // Create new FEO
     const feoData = {
-      photo: photoUrl,
+      image: photoUrl,
       fullname,
-      username,
       department,
       designation,
       employeeId,
@@ -81,8 +69,6 @@ const addfeo = async (req, res) => {
       email,
       officeContact,
       password: hashedPassword,
-      officeId: officeIdUrl,
-      isActive: isActive === 'true',
       date: date || Date.now()
     };
 
@@ -93,7 +79,7 @@ const addfeo = async (req, res) => {
 
   } catch (error) {
     console.error("Add FEO Error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
@@ -102,7 +88,7 @@ const loginAdmin = async (req,res)=>{
     try{
         const {email,password} = req.body
 
-        if(email == process.env.ADMIN_EMAIL && password == process.env.ADMIN_PASSWORD){
+        if(email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD){
             const token = jwt.sign(email+password,process.env.JWT_SECRET)
             res.json({success:true,token})
 
@@ -124,8 +110,20 @@ const allFEOs = async (req,res)=>{
         
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+        res.json({ success: false, message: error.message });
     }
 }
 
-export { addfeo,loginAdmin,allFEOs };
+
+// GET all users
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await userModel.find().select("-password")
+    res.json({ success: true, users })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ success: false, message: error.message })
+  }
+}
+
+export { addfeo,loginAdmin,allFEOs,getAllUsers };

@@ -32,34 +32,53 @@ const loginFEO = async(req,res)=>{
 }
 
 //API to get feo profile
-const feoProfile = async (req,res)=>{
-    try {
+const feoProfile = async (req, res) => {
+  try {
+    const feoId = req.feoId;   // 👈 use req.feoId, not req.body
+    const profileData = await feoModel.findById(feoId).select('-password');
+    res.json({ success: true, profileData });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-        const {feoId} = req.body
-        const profileData = await feoModel.findById(feoId).select('-password')
-        
-        res.json({ success: true, profileData });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-}
 
 //API to update feo profile 
-const updateFeoProfile = async (req,res) =>{
+const updateFeoProfile = async (req, res) => {
+  try {
+    const feoId = req.feoId;   // 👈 take from middleware
+
+    const { email, officeContact } = req.body;
+
+    // Build update object
+    const updateData = { email, officeContact };
+
+    // ✅ If new image uploaded, update it
+    if (req.file) {
+      const photoUpload = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: "image",
+      });
+      updateData.image = photoUpload.secure_url;
+    }
+
+    await feoModel.findByIdAndUpdate(feoId, updateData);
+
+    res.json({ success: true, message: "Profile Updated" });
+  } catch (error) {
+    console.error("Update FEO Profile Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+//API to get all FEO list for feo panel
+const allFEOsforFEO = async (req,res)=>{
     try {
-
-        const {feoId,username,email,officeContact} = req.body
-
-        await feoModel.findByIdAndUpdate(feoId,{username,email,officeContact})
-
-        res.json({success: true, message: "Profile Updated" })
-
+        const feos = await feoModel.find({}).select('-password')
+        res.json({success: true, feos})
+        
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: error.message });
     }
 }
 
-export {loginFEO,feoProfile,updateFeoProfile}
+export {loginFEO,feoProfile,updateFeoProfile,allFEOsforFEO}
