@@ -169,3 +169,55 @@ export const updateSpeciesRequest = async (req, res) => {
     res.status(500).json({ message: "Failed to update species request", error });
   }
 };
+
+
+// Update only RequestStatus
+export const updateSpeciesRequestStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { RequestStatus } = req.body;
+
+    const updated = await SpeciesRequest.findByIdAndUpdate(
+      id,
+      { RequestStatus },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Species request not found" });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Failed to update request status" });
+  }
+};
+
+// Update only RequestMessage
+export const updateSpeciesRequestMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { RequestMessage } = req.body;
+
+    if (!RequestMessage) {
+      return res.status(400).json({ message: "RequestMessage is required" });
+    }
+
+    const updated = await SpeciesRequest.findByIdAndUpdate(
+      id,
+      { RequestMessage },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Species request not found" });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating request message:", error);
+    res.status(500).json({ message: "Failed to update request message" });
+  }
+};
+

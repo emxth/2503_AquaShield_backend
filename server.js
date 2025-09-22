@@ -12,6 +12,9 @@ import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 //app config
 const app = express()
 app.use(cors());
+
+app.use(express.json());
+
 const port = process.env.PORT || 8081
 connectDB()
 
