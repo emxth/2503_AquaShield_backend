@@ -3,16 +3,17 @@ import cors from 'cors';
 import 'dotenv/config';
 import connectDB from './config/mongodb.js';
 import connectCloudinary from './config/cloudinary.js';
+import dotenv from "dotenv";
+import { connect } from 'mongoose';
+import bodyParser from 'body-parser';
+
+// Routes
 import adminRouter from './routes/adminRoute.js';
 import userRouter from './routes/userRoute.js';
 import feoRouter from './routes/feoRoute.js';
-import dotenv from "dotenv";
-import { connect } from 'mongoose';
-//import { json } from 'body-parser';
-import bodyParser from 'body-parser';
+import speciesRoutes from "./routes/speciesRoutes.js";
+import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 import { reportRouter } from "./routes/reportRoutes.js";
-
-
 
 // App config
 const app = express();
@@ -42,8 +43,6 @@ app.get('/',(req,res)=>{
 })
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
-
-app.listen(PORT, ()=> console.log("Server Started",port));
