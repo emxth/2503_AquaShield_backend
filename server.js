@@ -17,15 +17,15 @@ import { reportRouter } from "./routes/reportRoutes.js";
 
 // App config
 const app = express();
-const PORT = process.env.PORT || 8081;
+const port = process.env.PORT || 8081;
 connectDB()
 connectCloudinary()
 dotenv.config();
 
 // Database Connection
-connect(process.env.MONGODB_URL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// connect(process.env.MONGODB_URI)
+//   .then(() => console.log('Connected to MongoDB'))
+//   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middlewares
 app.use(express.json());
