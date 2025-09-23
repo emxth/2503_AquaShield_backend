@@ -22,9 +22,15 @@ connectCloudinary()
 dotenv.config();
 
 // Database Connection
+<<<<<<< HEAD
 connect(process.env.MONGODB_URL)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
+=======
+//connect(process.env.MONGODB_URL)
+//  .then(() => console.log('Connected to MongoDB'))
+//  .catch(err => console.error('MongoDB connection error:', err));
+>>>>>>> 0755a86 (modify report route)
 
 // Middlewares
 app.use(express.json());
