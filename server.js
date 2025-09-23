@@ -21,6 +21,7 @@ const app = express()
 app.use(cors());
 
 app.use(express.json());
+app.use(bodyParser.json());
 
 const port = process.env.PORT || 8081
 connectDB()
@@ -28,20 +29,24 @@ connectCloudinary()
 dotenv.config();
 
 // Database Connection
-connect(process.env.MONGODB_URL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// connect(process.env.MONGODB_URL)
+//   .then(() => console.log('Connected to MongoDB'))
+//   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middlewares
-app.use(express.json());
-app.use(cors());
-app.use(bodyParser.json());
+// app.use(express.json());
+// app.use(cors());
+
 
 // Api endpoints
 app.use('/api/admin',adminRouter);
 app.use('/api/user',userRouter);
 app.use('/api/feo',feoRouter);
 app.use('/api/report', reportRouter);
+
+// Species Management Routes
+app.use("/species", speciesRoutes);
+app.use("/speciesRequest", speciesRequestRoutes);
 
 app.get('/',(req,res)=>{
   res.send('API Working')
