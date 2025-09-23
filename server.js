@@ -11,19 +11,9 @@ import bodyParser from 'body-parser';
 import adminRouter from './routes/adminRoute.js';
 import userRouter from './routes/userRoute.js';
 import feoRouter from './routes/feoRoute.js';
-<<<<<<< HEAD
-import dotenv from "dotenv";
-import { connect } from 'mongoose';
-//import { json } from 'body-parser';
-import bodyParser from 'body-parser';
-import reportRouter from "./routes/reportRoutes.js";
-
-
-=======
 import speciesRoutes from "./routes/speciesRoutes.js";
 import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 import reportRouter from "./routes/reportRoutes.js";
->>>>>>> dev
 
 // App config
 const app = express();
@@ -56,7 +46,3 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-<<<<<<< HEAD
-
-=======
->>>>>>> dev
