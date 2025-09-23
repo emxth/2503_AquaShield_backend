@@ -1,32 +1,44 @@
-import express from 'express'
-import cors from 'cors'
-import 'dotenv/config'
-import connectDB from './config/mongodb.js'
-import connectCloudinary from './config/cloudinary.js'
-import adminRouter from './routes/adminRoute.js'
-import userRouter from './routes/userRoute.js'
-import feoRouter from './routes/feoRoute.js'
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import connectDB from './config/mongodb.js';
+import connectCloudinary from './config/cloudinary.js';
+import dotenv from "dotenv";
+import { connect } from 'mongoose';
+import bodyParser from 'body-parser';
 
+// Routes
+import adminRouter from './routes/adminRoute.js';
+import userRouter from './routes/userRoute.js';
+import feoRouter from './routes/feoRoute.js';
+import speciesRoutes from "./routes/speciesRoutes.js";
+import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
+import { reportRouter } from "./routes/reportRoutes.js";
 
-//app config
-const app = express()
-const port = process.env.PORT || 8081
+// App config
+const app = express();
+const port = process.env.PORT || 8081;
 connectDB()
 connectCloudinary()
+dotenv.config();
 
-//middlewares
+// Middlewares
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json())
-app.use(cors())
+app.use(express.json());
+app.use(cors());
+app.use(bodyParser.json());
 
-//api endpoints
-app.use('/api/admin',adminRouter)
-app.use('/api/user',userRouter)
-app.use('/api/feo',feoRouter)
-
+// Api endpoints
+app.use('/api/admin',adminRouter);
+app.use('/api/user',userRouter);
+app.use('/api/feo',feoRouter);
+app.use('/api/report', reportRouter);
 
 app.get('/',(req,res)=>{
   res.send('API Working')
 })
 
-app.listen(port, ()=> console.log("Server Started",port))
+// Start server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
