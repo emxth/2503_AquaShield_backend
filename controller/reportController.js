@@ -6,12 +6,15 @@ import ReportModel from "../models/ReportModel.js";
 
 
 //create a new report
+//create a new report
 const createNewReport = asyncHandler(async (req, res) => {
     try {
 
         console.log("==Report New Incident==");
 
-        const { location, Date, Time, incidentType, species, description, annonymity } = req.body;
+        const parsedLocation = JSON.parse(req.body.locationInfo);
+        const parsedIncident = JSON.parse(req.body.incidentInfo);
+        const parsedPersonal = JSON.parse(req.body.personalInfo);
 
         const evidence = req.files.map(file => ({
             url: file.path,
@@ -19,7 +22,7 @@ const createNewReport = asyncHandler(async (req, res) => {
             resource_type: file.resource_type,
         }))
 
-        let parseLocation;
+        {/*let parseLocation;
         try {
             parseLocation = typeof location === 'string' ? JSON.parse(location) : location;
         } catch (parseError) {
@@ -27,21 +30,21 @@ const createNewReport = asyncHandler(async (req, res) => {
                 message: "Invalid location format",
                 error: parseError.message
             });
-        }
+        }*/}
 
         const newIncident = await ReportModel.create({
-            reporter: req.user._id,
-            annonymity,
+            reporter: "68ce9ce7fcece28d887e4cf4",
+            isAnonymous: parsedPersonal.annonymity,
             location: {
                 type: "Point",
-                coordinates: parseLocation.coordinates,
+                coordinates: [parsedLocation.lng, parsedLocation.lat],
                 description: parseLocation.description
             },
-            Date,
-            Time,
-            incidentType,
-            species,
-            description,
+            date: parsedIncident.incidentDate,
+            time: parsedIncident.incidentTime,
+            incidentType: parsedIncident.incidentType,
+            species: parsedIncident.species,
+            description: parsedIncident.description,
             evidence,
             status: "PENDING",
 
