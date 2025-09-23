@@ -23,9 +23,9 @@ connectCloudinary()
 dotenv.config();
 
 // Database Connection
-// connect(process.env.MONGODB_URI)
-//   .then(() => console.log('Connected to MongoDB'))
-//   .catch(err => console.error('MongoDB connection error:', err));
+//connect(process.env.MONGODB_URL)
+//  .then(() => console.log('Connected to MongoDB'))
+//  .catch(err => console.error('MongoDB connection error:', err));
 
 // Middlewares
 app.use(express.json());

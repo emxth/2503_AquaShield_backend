@@ -75,6 +75,13 @@ const getSubmittedReports = asyncHandler(async (req, res) => {
     res.status(200).json(reports);
 });
 
+const getSpecificReports = asyncHandler(async (req, res) => {
+    const reportId = req.params;
+
+    const reports = await ReportModel.findById({ _id: reportId });
+    res.status(200).json(reports);
+})
+
 //report filter by status
 const reportFilterBySatatus = asyncHandler(async (req, res) => {
     const { status } = req.query;
@@ -184,5 +191,6 @@ export {
     reportFilterBySatatus,
     getIncidentTypes,
     updateReports,
-    deleteReport
+    deleteReport,
+    getSpecificReports
 };
