@@ -5,7 +5,7 @@ import _default from "validator";
 
 const reportRouter = Router();
 
-reportRouter.post("/create", uploadMulter.single("file"), createNewReport);
+reportRouter.post("/create", uploadMulter.array("files"), createNewReport);
 reportRouter.get("/getReports", getSubmittedReports);
 reportRouter.get("/getAllReports", getAllReports);
 reportRouter.get("/filteredReport", reportFilterBySatatus);

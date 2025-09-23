@@ -4,6 +4,7 @@ const { Schema, model } = mongoose;
 
 const reportSchema = new Schema({
     reporter: { type: mongoose.Types.ObjectId, ref: "User", required: true },
+    isAnonymous: { type: Boolean, default: false },
     location: {
         type: {
             type: String,

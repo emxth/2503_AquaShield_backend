@@ -11,7 +11,9 @@ const createNewReport = asyncHandler(async (req, res) => {
 
         console.log("==Report New Incident==");
 
-        const { location, Date, Time, incidentType, species, description, annonymity } = req.body;
+        const parsedLocation = JSON.parse(req.body.location);
+        const parsedIncident = JSON.parse(req.body.incidentInfo);
+        const parsedPersonal = JSON.parse(req.body.personalInfo);
 
         const evidence = req.files.map(file => ({
             url: file.path,
@@ -31,17 +33,17 @@ const createNewReport = asyncHandler(async (req, res) => {
 
         const newIncident = await ReportModel.create({
             reporter: req.user._id,
-            annonymity,
+            isAnonymous: parsedPersonal.annonymity,
             location: {
                 type: "Point",
-                coordinates: parseLocation.coordinates,
+                coordinates: [parsedLocation.lng, parsedLocation.lat],
                 description: parseLocation.description
             },
-            Date,
-            Time,
-            incidentType,
-            species,
-            description,
+            date: parsedIncident.incidentDate,
+            time: parsedIncident.incidentTime,
+            incidentType: parsedIncident.incidentType,
+            species: parsedIncident.species,
+            description: parsedIncident.description,
             evidence,
             status: "PENDING",
 
