@@ -10,4 +10,5 @@ userRouter.post('/login',loginUser)
 userRouter.get('/get-profile',authUser,getProfile)
 userRouter.put('/update-profile',upload.single('image'),authUser,updateProfile)
 
+
 export default userRouter
