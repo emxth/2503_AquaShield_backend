@@ -1,0 +1,171 @@
+import SpeciesRequest from "../models/speciesRequest.js";
+import cloudinary from "../config/cloudinary.js";
+import streamifier from "streamifier";
+
+// Add Species Request
+export const addSpeciesRequest = async (req, res) => {
+    try {
+        const {
+            requesterName,
+            scientificName,
+            commonName,
+            speciesCategory,
+            protectionLevel,
+            habitat,
+            protectionStatus,
+            description,
+            updatedDate,
+            requestStatus,
+        } = req.body;
+
+        let imageURL = "";
+
+        //upload to cloudinary as a stram - it is stored in buffer multer
+        if (req.file) {
+            const streamUpload = (req) => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: "species-images" },
+                        (error, result) => {
+                            if (result) resolve(result);
+                            else reject(error);
+                        }
+                    );
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+            };
+            const result = await streamUpload(req);
+            imageURL = result.secure_url;
+        }
+
+        const newSpeciesRequest = new SpeciesRequest({
+            RequesterName:requesterName,
+            ScientificName: scientificName,
+            CommonName: commonName,
+            SpeciesCategory: speciesCategory,
+            ProtectionLevel: protectionLevel,
+            Habitat: habitat,
+            ProtectionStatus: protectionStatus === "true" || protectionStatus === true,
+            updatedDate: updatedDate || Date.now(),
+            ImageURL: imageURL,
+            Description: description,
+            RequestStatus:requestStatus
+        });
+
+        await newSpeciesRequest.save();
+        res.status(201).json({ message: "Species request added successfully", data: newSpeciesRequest });
+    } catch (error) {
+        console.error("Add species request error:", error);
+        res.status(500).json({ message: "Error adding species request", error });
+    }
+};
+
+// Get all species
+export const getSpeciesRequest = async (req, res) => {
+  try {
+    const speciesRequest = await SpeciesRequest.find();
+    res.status(200).json(speciesRequest);
+  } catch (error) {
+    console.error("Get species request error:", error);
+    res.status(500).json({ message: "Error fetching species request", error });
+  }
+};
+
+// Get one species by ID
+export const getSpeciesRequestById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const speciesRequest = await SpeciesRequest.findById(id);
+
+    if (!speciesRequest) {
+      return res.status(404).json({ message: "Species request not found" });
+    }
+
+    res.status(200).json(speciesRequest);
+  } catch (error) {
+    console.error("Get species request by ID error:", error);
+    res.status(500).json({ message: "Error fetching species requests", error });
+  }
+};
+
+// Delete Species by ID (safe version)
+export const deleteSpeciesRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedSpeciesRequest = await SpeciesRequest.findByIdAndDelete(id);
+
+    if (!deletedSpeciesRequest) {
+      return res.status(404).json({ message: "Species request not found" });
+    }
+
+    res.status(200).json({ message: "Species request deleted successfully" });
+  } catch (error) {
+    console.error("Delete species request error:", error);
+    res.status(500).json({ message: "Error deleting species", error });
+  }
+};
+
+
+// Update Species
+export const updateSpeciesRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find species by ID
+    const speciesRequest = await SpeciesRequest.findById(id);
+    if (!speciesRequest) return res.status(404).json({ message: "Species request not found" });
+
+    // Update fields
+    const {
+      ScientificName,
+      CommonName,
+      SpeciesCategory,
+      ProtectionLevel,
+      Habitat,
+      updatedDate,
+      ProtectionStatus,
+      Description,
+      RequestStatus
+    } = req.body;
+
+    species.ScientificName = ScientificName || species.ScientificName;
+    species.CommonName = CommonName || species.CommonName;
+    species.SpeciesCategory = SpeciesCategory || species.SpeciesCategory;
+    species.ProtectionLevel = ProtectionLevel || species.ProtectionLevel;
+    species.Habitat = Habitat || species.Habitat;
+    species.updatedDate = updatedDate || species.updatedDate;
+    species.Description = Description || species.Description;
+    species.RequestStatus = RequestStatus || species.RequestStatus;
+
+    if (ProtectionStatus !== undefined) {
+      species.ProtectionStatus = ProtectionStatus === "true" || ProtectionStatus === true;
+    }
+
+    // Handle image if uploaded
+    if (req.file) {
+      const streamUpload = (req) =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "species-images" },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const result = await streamUpload(req);
+      species.ImageURL = result.secure_url;
+    }
+
+    // Save updated species
+    const updatedSpeciesRequest = await SpeciesRequest.save();
+
+    res.status(200).json(updatedSpeciesRequest);
+  } catch (error) {
+    console.error("Error updating species request:", error);
+    res.status(500).json({ message: "Failed to update species request", error });
+  }
+};
