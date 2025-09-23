@@ -11,7 +11,7 @@ const createNewReport = asyncHandler(async (req, res) => {
 
         console.log("==Report New Incident==");
 
-        const parsedLocation = JSON.parse(req.body.location);
+        const parsedLocation = JSON.parse(req.body.locationInfo);
         const parsedIncident = JSON.parse(req.body.incidentInfo);
         const parsedPersonal = JSON.parse(req.body.personalInfo);
 
@@ -21,7 +21,7 @@ const createNewReport = asyncHandler(async (req, res) => {
             resource_type: file.resource_type,
         }))
 
-        let parseLocation;
+        {/*let parseLocation;
         try {
             parseLocation = typeof location === 'string' ? JSON.parse(location) : location;
         } catch (parseError) {
@@ -29,10 +29,10 @@ const createNewReport = asyncHandler(async (req, res) => {
                 message: "Invalid location format",
                 error: parseError.message
             });
-        }
+        }*/}
 
         const newIncident = await ReportModel.create({
-            reporter: req.user._id,
+            reporter: "68ce9ce7fcece28d887e4cf4",
             isAnonymous: parsedPersonal.annonymity,
             location: {
                 type: "Point",
