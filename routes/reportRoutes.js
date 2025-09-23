@@ -1,17 +1,18 @@
 import { Router } from "express";
 import { uploadMulter } from "../middleware/uploadMulter.js";
-<<<<<<< Updated upstream
 import { createNewReport, deleteReport, getAllReports, getIncidentTypes, getSubmittedReports, reportFilterBySatatus, updateReports } from "../controller/reportController.js";
+
 
 const router = Router();
 
-router.post("/create", uploadMulter.single("file"), createNewReport);
-router.get("/getReports", getSubmittedReports);
-router.get("/getAllReports", getAllReports);
-router.get("/filteredReport", reportFilterBySatatus);
-router.get("/incidentType", getIncidentTypes);
-router.put("/updateReport", updateReports);
-router.delete("/deleteReport", deleteReport);
+reportRouter.post("/createReports", uploadMulter.single("file"), createNewReport);
+reportRouter.get("/getReports", getSubmittedReports);
+reportRouter.get("/getAllReports", getAllReports);
+reportRouter.get("/filteredReport", reportFilterBySatatus);
+reportRouter.get("/incidentType", getIncidentTypes);
+reportRouter.put("/updateReport", updateReports);
+reportRouter.delete("/deleteReport", deleteReport);
+reportRouter.get("/getSpecificReport/:id", getSpecificReports);
 
 
 export { router as reportRouter };
