@@ -18,9 +18,10 @@ import reportRouter from "./routes/reportRoutes.js";
 // App config
 const app = express();
 const port = process.env.PORT || 8081;
-connectDB()
-connectCloudinary()
+connectDB();
+
 dotenv.config();
+//connectCloudinary();
 
 // Database Connection
 //connect(process.env.MONGODB_URL)

@@ -15,21 +15,52 @@ const createNewReport = asyncHandler(async (req, res) => {
         const parsedIncident = JSON.parse(req.body.incidentInfo);
         const parsedPersonal = JSON.parse(req.body.personalInfo);
 
+        console.log("Longitude:", parsedLocation.lng, "Type:", typeof parsedLocation.lng);
+        console.log("Latitude:", parsedLocation.lat, "Type:", typeof parsedLocation.lat);
+
+        console.log("📍 Location Data Received:", {
+            lng: parsedLocation.lng,
+            lat: parsedLocation.lat,
+            hasLng: !!parsedLocation.lng,
+            hasLat: !!parsedLocation.lat,
+            lngType: typeof parsedLocation.lng,
+            latType: typeof parsedLocation.lat
+        });
+
+        // CRITICAL FIX: Validate coordinates before using them
+        let coordinates = null;
+
+        if (parsedLocation.lng !== null && parsedLocation.lat !== null &&
+            parsedLocation.lng !== undefined && parsedLocation.lat !== undefined) {
+
+            const lng = parseFloat(parsedLocation.lng);
+            const lat = parseFloat(parsedLocation.lat);
+
+            if (!isNaN(lng) && !isNaN(lat)) {
+                coordinates = [lng, lat];
+            }
+        }
+
+        // If coordinates are invalid, don't create geo point
+        let locationData = {
+            description: parsedLocation.description || "Location not specified"
+        };
+
+        if (coordinates) {
+            locationData.type = "Point";
+            locationData.coordinates = coordinates;
+        } else {
+            // Create without geo data to avoid the error
+            console.warn("⚠️ Invalid coordinates - creating report without geo data");
+            locationData.type = "Point";
+            locationData.coordinates = undefined; // Don't include invalid coordinates
+        }
+
         const evidence = req.files.map(file => ({
             url: file.path,
             public_id: file.filename,
             resource_type: file.resource_type,
         }))
-
-        {/*let parseLocation;
-        try {
-            parseLocation = typeof location === 'string' ? JSON.parse(location) : location;
-        } catch (parseError) {
-            return res.status(400).json({
-                message: "Invalid location format",
-                error: parseError.message
-            });
-        }*/}
 
         const newIncident = await ReportModel.create({
             reporter: "68ce9ce7fcece28d887e4cf4",
@@ -37,7 +68,7 @@ const createNewReport = asyncHandler(async (req, res) => {
             location: {
                 type: "Point",
                 coordinates: [parsedLocation.lng, parsedLocation.lat],
-                description: parseLocation.description
+                description: parsedLocation.description
             },
             date: parsedIncident.incidentDate,
             time: parsedIncident.incidentTime,
