@@ -100,7 +100,7 @@ const createNewReport = asyncHandler(async (req, res) => {
 
 const getSubmittedReports = asyncHandler(async (req, res) => {
 
-    const userID = req.user._id;
+    const userID = "68ce9ce7fcece28d887e4cf4";
     const reports = await ReportModel.find({ reporter: userID });
 
     res.status(200).json(reports);
