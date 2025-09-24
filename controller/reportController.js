@@ -56,11 +56,13 @@ const createNewReport = asyncHandler(async (req, res) => {
             locationData.coordinates = undefined; // Don't include invalid coordinates
         }
 
-        const evidence = req.files.map(file => ({
+        const evidence = req.files ? req.files.map(file => ({
             url: file.path,
             public_id: file.filename,
-            resource_type: file.resource_type,
-        }))
+            resource_type: file.resource_type || (file.mimetype.startsWith('image/') ? 'image' : 'video'),
+        })) : [];
+
+        console.log("Processed evidence:", evidence);
 
         const newIncident = await ReportModel.create({
             reporter: "68ce9ce7fcece28d887e4cf4",
@@ -75,7 +77,8 @@ const createNewReport = asyncHandler(async (req, res) => {
             incidentType: parsedIncident.incidentType,
             species: parsedIncident.species,
             description: parsedIncident.description,
-            evidence,
+            evidencePhotos: evidence,
+
             status: "PENDING",
 
         });
@@ -103,7 +106,11 @@ const getSubmittedReports = asyncHandler(async (req, res) => {
     const userID = "68ce9ce7fcece28d887e4cf4";
     const reports = await ReportModel.find({ reporter: userID });
 
-    res.status(200).json(reports);
+    res.status(200).json({
+        success: true,
+        data: reports, // Wrap in consistent structure
+        count: reports.length
+    });
 });
 
 const getSpecificReports = asyncHandler(async (req, res) => {

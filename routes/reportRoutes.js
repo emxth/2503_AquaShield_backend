@@ -5,7 +5,7 @@ import { createNewReport, deleteReport, getAllReports, getIncidentTypes, getSpec
 
 const reportRouter = Router();
 
-reportRouter.post("/create", uploadMulter.array("files"), createNewReport);
+reportRouter.post("/create", uploadMulter.array("evidence"), createNewReport);
 reportRouter.get("/getReports", getSubmittedReports);
 reportRouter.get("/getAllReports", getAllReports);
 reportRouter.get("/filteredReport", reportFilterBySatatus);
