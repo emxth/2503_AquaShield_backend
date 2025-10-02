@@ -69,6 +69,7 @@ const updateFeoProfile = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 //API to get all FEO list for feo panel
 const allFEOsforFEO = async (req,res)=>{
     try {
