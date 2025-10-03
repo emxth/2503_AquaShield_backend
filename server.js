@@ -37,6 +37,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
 app.use('/api/feo', feoRouter);
 app.use('/api/report', reportRouter);
+app.use("/api/species", speciesRoutes);
 
 app.get('/', (req, res) => {
   res.send('API Working')
