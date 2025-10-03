@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { json } from "express";
 import ReportModel from "../models/ReportModel.js";
 
+// const Report = require("../models/ReportModel.js");
 
 //create a new report
 const createNewReport = asyncHandler(async (req, res) => {
@@ -125,7 +126,6 @@ const getIncidentTypes = asyncHandler(async (req, res) => {
     }
 });
 
-
 const updateReports = asyncHandler(async (req, res) => {
     try {
 
@@ -166,7 +166,6 @@ const updateReports = asyncHandler(async (req, res) => {
     }
 })
 
-
 const deleteReport = asyncHandler(async (req, res) => {
 
     try {
@@ -184,6 +183,143 @@ const deleteReport = asyncHandler(async (req, res) => {
     }
 })
 
+// Get recent 5 reports
+const getRecentReports = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.find()
+      .populate("species", "CommonName ScientificName ProtectionStatus SpeciesCategory") // populate species name
+      .select('location description incidentType status date time evidencePhotos')
+      .sort({ date: -1 }) // latest first
+      .limit(5);
+
+    const formatted = reports.map((r, i) => ({
+      id: r._id,
+      species: r.species?.CommonName || "Tuna",
+      location: r.location || "Unknown Location",
+      date: r.date.toISOString().split("T")[0],
+      status: r.status.toLowerCase(),
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch reports" });
+  }
+})
+
+// Get monthly trend data
+const getTrendData = asyncHandler(async (req, res) => {
+  try {
+    const result = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: { $month: "$date" },
+          incidents: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id": 1 } },
+    ]);
+
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const formatted = result.map(r => ({
+      month: months[r._id - 1],
+      incidents: r.incidents,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch trend data" });
+  }
+})
+
+// Get most reported species
+const getSpeciesData = asyncHandler(async (req, res) => {
+  try {
+    const result = await ReportModel.aggregate([
+      { $group: { _id: "$species", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: "species",
+          localField: "_id",
+          foreignField: "_id",
+          as: "speciesDetails",
+        },
+      },
+      { $unwind: "$speciesDetails" },
+      { $project: { species: "$speciesDetails.CommonName", count: 1 } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch species data" });
+  }
+})
+
+// Get monthly statistics
+const getMonthlyStats = asyncHandler(async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const stats = await ReportModel.aggregate([
+      {
+        $match: {
+          date: { $gte: startOfMonth, $lte: endOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalReports: { $sum: 1 },
+          pending: {
+            $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] }
+          },
+          approved: {
+            $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] }
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ["$status", "REJECTED"] }, 1, 0] }
+          },
+          cancelled: {
+            $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] }
+          },
+        },
+      },
+      {
+        $project: {
+          totalReports: 1,
+          pending: 1,
+          approved: 1,
+          rejected: 1,
+          cancelled: 1,
+          successRate: {
+            $multiply: [
+              { $divide: ["$approved", "$totalReports"] },
+              100
+            ]
+          }
+        }
+      }
+    ]);
+
+    const result = stats[0] || {
+      totalReports: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      successRate: 0
+    };
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching monthly stats:", error);
+    res.status(500).json({ error: "Failed to fetch monthly stats" });
+  }
+});
+
 export {
     createNewReport,
     getSubmittedReports,
@@ -192,5 +328,9 @@ export {
     getIncidentTypes,
     updateReports,
     deleteReport,
-    getSpecificReports
-};
+    getSpecificReports,
+    getRecentReports,
+    getTrendData,
+    getSpeciesData,
+    getMonthlyStats
+}
