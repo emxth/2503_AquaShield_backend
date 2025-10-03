@@ -41,7 +41,7 @@ const reportSchema = new Schema({
     },
     species: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'species',
+        ref: 'Species',
         required: true
     },
     description: { type: String },
@@ -63,4 +63,3 @@ const reportSchema = new Schema({
 reportSchema.index({ location: "2dsphere" });
 
 export default model("report", reportSchema);
-
