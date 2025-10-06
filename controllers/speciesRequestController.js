@@ -1,5 +1,5 @@
 import SpeciesRequest from "../models/speciesRequest.js";
-import cloudinary from "../config/cloudinary.js";
+import cloudinary from "../config/speciesCloudinary.js";
 import streamifier from "streamifier";
 
 // Add Species Request

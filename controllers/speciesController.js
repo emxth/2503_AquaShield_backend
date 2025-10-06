@@ -36,6 +36,14 @@ export const addSpecies = async (req, res) => {
       const result = await streamUpload(req);
       imageURL = result.secure_url;
     }
+    else if (req.body.ImageURL) {
+      // Case 2: Image URL provided directly
+      imageURL = req.body.ImageURL;
+    } else {
+      // Optional: No image provided
+      imageURL = null;
+    }
+
 
     const newSpecies = new Species({
       ScientificName: scientificName,
@@ -131,7 +139,7 @@ export const updateSpecies = async (req, res) => {
     species.ProtectionLevel = ProtectionLevel || species.ProtectionLevel;
     species.Habitat = Habitat || species.Habitat;
     species.updatedDate = updatedDate || species.updatedDate;
-    
+
     species.Description = Description || species.Description;
 
     if (ProtectionStatus !== undefined) {
@@ -165,3 +173,47 @@ export const updateSpecies = async (req, res) => {
     res.status(500).json({ message: "Failed to update species", error });
   }
 };
+
+// Get Dashboard Statistics
+export const getSpeciesDashboard = async (req, res) => {
+  try {
+    const speciesList = await Species.find();
+
+    // Total species count
+    const totalCount = speciesList.length;
+
+    // Endangered / Common / Protected distribution
+    const endangeredCount = speciesList.filter(s => s.ProtectionLevel?.toLowerCase() === "endangered").length;
+    const protectedCount = speciesList.filter(s => s.ProtectionStatus === true).length;
+    const commonCount = totalCount - endangeredCount - protectedCount;
+
+    // Recently added (last 7 days)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const recentCount = speciesList.filter(s => new Date(s.createdAt) >= oneWeekAgo).length;
+
+    // Line chart: species added by month
+    const monthlyData = {};
+    speciesList.forEach(species => {
+      const month = new Date(species.createdAt).toLocaleString("default", { month: "short" });
+      monthlyData[month] = (monthlyData[month] || 0) + 1;
+    });
+    const lineData = Object.keys(monthlyData).map(month => ({
+      month,
+      count: monthlyData[month],
+    }));
+
+    res.status(200).json({
+      totalCount,
+      endangeredCount,
+      protectedCount,
+      commonCount,
+      recentCount,
+      lineData,
+    });
+  } catch (error) {
+    console.error("Dashboard data error:", error);
+    res.status(500).json({ message: "Error fetching dashboard data", error });
+  }
+};
+
