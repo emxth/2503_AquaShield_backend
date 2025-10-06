@@ -421,6 +421,36 @@ const getKeyMetrics = asyncHandler(async (req, res) => {
   }
 });
 
+// Get top 5 hotspots by incident count
+const getHotspots = asyncHandler(async (req, res) => {
+  try {
+    const hotspots = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: "$location.description", // group by region/description
+          incidents: { $sum: 1 },
+          lat: { $first: { $arrayElemAt: ["$location.coordinates", 1] } }, // latitude
+          lng: { $first: { $arrayElemAt: ["$location.coordinates", 0] } }, // longitude
+        },
+      },
+      { $sort: { incidents: -1 } }, // sort by highest incidents
+      { $limit: 5 }, // top 5
+    ]);
+
+    const formatted = hotspots.map((h) => ({
+      region: h._id,
+      incidents: h.incidents,
+      lat: h.lat,
+      lng: h.lng,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Error fetching hotspots:", error);
+    res.status(500).json({ message: "Error fetching hotspots" });
+  }
+});
+
 export {
     createNewReport,
     getSubmittedReports,
@@ -436,5 +466,6 @@ export {
     getMonthlyStats,
     getMonthlyFrequency,
     getStatusData,
-    getKeyMetrics
+    getKeyMetrics,
+    getHotspots
 }

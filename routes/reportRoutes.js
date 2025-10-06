@@ -15,7 +15,8 @@ import {
   getMonthlyStats,
   getMonthlyFrequency,
   getStatusData,
-  getKeyMetrics
+  getKeyMetrics,
+  getHotspots
 } from "../controller/reportController.js";
 
 const reportRouter = Router();
@@ -36,5 +37,6 @@ reportRouter.get("/monthly-stats", getMonthlyStats);
 reportRouter.get("/frequency", getMonthlyFrequency);
 reportRouter.get("/status", getStatusData);
 reportRouter.get("/key-metrics", getKeyMetrics);
+reportRouter.get("/hotspots", getHotspots);
 
 export default reportRouter;
