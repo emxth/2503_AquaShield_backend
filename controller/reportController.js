@@ -81,7 +81,7 @@ const getSpecificReports = asyncHandler(async (req, res) => {
 
     const reports = await ReportModel.findById({ _id: reportId });
     res.status(200).json(reports);
-})
+});
 
 //report filter by status
 const reportFilterBySatatus = asyncHandler(async (req, res) => {
@@ -92,7 +92,7 @@ const reportFilterBySatatus = asyncHandler(async (req, res) => {
     res.status(200).json(reports);
 
 
-})
+});
 
 const getAllReports = asyncHandler(async (req, res) => {
 
@@ -115,7 +115,7 @@ const getAllReports = asyncHandler(async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 
-})
+});
 
 const getIncidentTypes = asyncHandler(async (req, res) => {
     try {
@@ -164,7 +164,7 @@ const updateReports = asyncHandler(async (req, res) => {
         console.error(err);
         res.status(500).json({ Error: err })
     }
-})
+});
 
 const deleteReport = asyncHandler(async (req, res) => {
 
@@ -181,7 +181,7 @@ const deleteReport = asyncHandler(async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
-})
+});
 
 // Get recent 5 reports
 const getRecentReports = asyncHandler(async (req, res) => {
@@ -204,7 +204,7 @@ const getRecentReports = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch reports" });
   }
-})
+});
 
 // Get monthly trend data
 const getTrendData = asyncHandler(async (req, res) => {
@@ -229,7 +229,7 @@ const getTrendData = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch trend data" });
   }
-})
+});
 
 // Get most reported species
 const getSpeciesData = asyncHandler(async (req, res) => {
@@ -254,7 +254,7 @@ const getSpeciesData = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch species data" });
   }
-})
+});
 
 // Get monthly statistics
 const getMonthlyStats = asyncHandler(async (req, res) => {
@@ -320,6 +320,69 @@ const getMonthlyStats = asyncHandler(async (req, res) => {
   }
 });
 
+// Get monthly frequency data (incidents vs prevented)
+const getMonthlyFrequency = asyncHandler(async (req, res) => {
+  try {
+    const data = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: { month: { $month: "$createdAt" } },
+          incidents: { $sum: 1 },
+          prevented: { $sum: { $cond: [{ $eq: ["$status", "Approved"] }, 1, 0] } },
+        },
+      },
+      { $sort: { "_id.month": 1 } },
+    ]);
+
+    // Map month numbers → names
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    const formatted = data.map((item) => ({
+      month: months[item._id.month - 1],
+      incidents: item.incidents,
+      prevented: item.prevented,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Frequency stats error:", error);
+    res.status(500).json({ message: "Error fetching frequency data" });
+  }
+});
+
+// Get status distribution data
+const getStatusData = asyncHandler(async (req, res) => {
+  try {
+    const data = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          value: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const formatted = data.map((item) => ({
+      name: item._id,
+      value: item.value,
+      color:
+        item._id === "Approved"
+          ? "hsl(var(--primary))"
+          : item._id === "Pending"
+          ? "hsl(var(--muted))"
+          : "hsl(var(--destructive))",
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Status stats error:", error);
+    res.status(500).json({ message: "Error fetching status data" });
+  }
+});
+
 export {
     createNewReport,
     getSubmittedReports,
@@ -332,5 +395,7 @@ export {
     getRecentReports,
     getTrendData,
     getSpeciesData,
-    getMonthlyStats
+    getMonthlyStats,
+    getMonthlyFrequency,
+    getStatusData
 }

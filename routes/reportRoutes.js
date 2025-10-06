@@ -12,7 +12,9 @@ import {
   getRecentReports,
   getTrendData,
   getSpeciesData,
-  getMonthlyStats
+  getMonthlyStats,
+  getMonthlyFrequency,
+  getStatusData
 } from "../controller/reportController.js";
 
 const reportRouter = Router();
@@ -24,9 +26,13 @@ reportRouter.get("/filteredReport", reportFilterBySatatus);
 reportRouter.get("/incidentType", getIncidentTypes);
 reportRouter.put("/updateReport", updateReports);
 reportRouter.delete("/deleteReport", deleteReport);
+
+// Routes for Admin Dashboard
 reportRouter.get("/recent", getRecentReports);
 reportRouter.get("/trends", getTrendData);
 reportRouter.get("/species", getSpeciesData);
 reportRouter.get("/monthly-stats", getMonthlyStats);
+reportRouter.get("/frequency", getMonthlyFrequency);
+reportRouter.get("/status", getStatusData);
 
 export default reportRouter;
