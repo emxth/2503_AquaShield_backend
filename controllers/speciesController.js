@@ -103,7 +103,6 @@ export const deleteSpecies = async (req, res) => {
   }
 };
 
-
 // Update Species
 export const updateSpecies = async (req, res) => {
   try {
@@ -163,5 +162,32 @@ export const updateSpecies = async (req, res) => {
   } catch (error) {
     console.error("Error updating species:", error);
     res.status(500).json({ message: "Failed to update species", error });
+  }
+};
+
+// Get species statistics
+export const getSpeciesStats = async (req, res) => {
+  try {
+    const data = await Species.aggregate([
+      {
+        $group: {
+          _id: "$CommonName",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const total = data.reduce((sum, s) => sum + s.count, 0);
+
+    const formatted = data.map((s) => ({
+      species: s._id,
+      count: s.count,
+      percentage: ((s.count / total) * 100).toFixed(2),
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Species stats error:", error);
+    res.status(500).json({ message: "Error fetching species stats" });
   }
 };
