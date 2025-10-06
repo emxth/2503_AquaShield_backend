@@ -34,11 +34,13 @@ const loginFEO = async(req,res)=>{
 //API to get feo profile
 const feoProfile = async (req, res) => {
   try {
-    const feoId = req.feoId;   // 👈 use req.feoId, not req.body
+
+    const feoId = req.feoId;  
     const profileData = await feoModel.findById(feoId).select('-password');
     res.json({ success: true, profileData });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
