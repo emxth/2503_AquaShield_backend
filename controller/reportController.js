@@ -326,9 +326,9 @@ const getMonthlyFrequency = asyncHandler(async (req, res) => {
     const data = await ReportModel.aggregate([
       {
         $group: {
-          _id: { month: { $month: "$createdAt" } },
+          _id: { month: { $month: "$date" } },
           incidents: { $sum: 1 },
-          prevented: { $sum: { $cond: [{ $eq: ["$status", "Approved"] }, 1, 0] } },
+          prevented: { $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] } },
         },
       },
       { $sort: { "_id.month": 1 } },
