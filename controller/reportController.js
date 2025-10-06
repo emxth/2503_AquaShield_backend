@@ -383,6 +383,44 @@ const getStatusData = asyncHandler(async (req, res) => {
   }
 });
 
+// Get key metrics for statistics
+const getKeyMetrics = asyncHandler(async (req, res) => {
+  try {
+    // Total incidents (this year)
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+
+    const totalIncidents = await ReportModel.countDocuments({
+      date: { 
+        $gte: startOfYear
+      }
+    });
+
+    // Prevented incidents (status = Approved)
+    const prevented = await ReportModel.countDocuments({ status: "CONFIRMED" });
+
+    // Active hotspots (example: group by location where count > 5)
+    const hotspots = await ReportModel.aggregate([
+      { $group: { _id: "$location", count: { $sum: 1 } } },
+      { $match: { count: { $gte: 5 } } }
+    ]);
+
+    const preventionRate = totalIncidents > 0 
+      ? ((prevented / totalIncidents) * 100).toFixed(1)
+      : 0;
+
+    res.json({
+      totalIncidents,
+      prevented,
+      preventionRate,
+      activeHotspots: hotspots.length,
+    });
+  } catch (error) {
+    console.error("Key metrics error:", error);
+    res.status(500).json({ message: "Error fetching key metrics" });
+  }
+});
+
 export {
     createNewReport,
     getSubmittedReports,
@@ -397,5 +435,6 @@ export {
     getSpeciesData,
     getMonthlyStats,
     getMonthlyFrequency,
-    getStatusData
+    getStatusData,
+    getKeyMetrics
 }
