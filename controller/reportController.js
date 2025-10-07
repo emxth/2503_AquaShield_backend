@@ -451,6 +451,75 @@ const getHotspots = asyncHandler(async (req, res) => {
   }
 });
 
+const getReports = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.aggregate([
+      {
+        $lookup: {
+          from: "species",
+          localField: "species",
+          foreignField: "_id",
+          as: "speciesData",
+        },
+      },
+      { $unwind: { path: "$speciesData", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "reporter",
+          foreignField: "_id",
+          as: "reporterData",
+        },
+      },
+      { $unwind: { path: "$reporterData", preserveNullAndEmptyArrays: true } },
+
+      { $sort: { date: -1 } },
+
+      {
+        $project: {
+          id: "$_id",
+          species: { $ifNull: ["$speciesData.CommonName", "Unknown Species"] },
+          location: "$location.description",
+          coordinates: "$location.coordinates",
+          // Safely handle invalid or string dates
+          date: {
+            $cond: {
+              if: { $eq: [{ $type: "$date" }, "date"] },
+              then: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+              else: "Unknown",
+            },
+          },
+          time: {
+            $cond: {
+              if: { $eq: [{ $type: "$time" }, "date"] },
+              then: { $dateToString: { format: "%H:%M:%S", date: "$time" } },
+              else: "Unknown",
+            },
+          },
+          incidentType: 1,
+          status: { $toLower: "$status" },
+          reporter: {
+            $cond: {
+              if: "$isAnonymous",
+              then: "Anonymous",
+              else: { $ifNull: ["$reporterData.name", "Unknown Reporter"] },
+            },
+          },
+          evidencePhotos: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error("Error in getReports aggregation:", error);
+    res.status(500).json({ error: "Failed to fetch reports" });
+  }
+});
+
+
+
 export {
     createNewReport,
     getSubmittedReports,
@@ -467,5 +536,6 @@ export {
     getMonthlyFrequency,
     getStatusData,
     getKeyMetrics,
-    getHotspots
+    getHotspots,
+    getReports
 }
