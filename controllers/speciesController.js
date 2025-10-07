@@ -1,6 +1,7 @@
 import Species from "../models/speciesModel.js";
 import cloudinary from "../config/speciesCloudinary.js";
 import streamifier from "streamifier";
+import SpeciesHistory from "../models/speciesHistoryModel.js";
 
 // Add Species
 export const addSpecies = async (req, res) => {
@@ -58,6 +59,14 @@ export const addSpecies = async (req, res) => {
     });
 
     await newSpecies.save();
+
+    // Record history
+    await SpeciesHistory.create({
+      action: `Added new species - ${newSpecies.ScientificName}`,
+      speciesId: newSpecies._id,
+      details: newSpecies,
+    });
+
     res.status(201).json({ message: "Species added successfully", data: newSpecies });
   } catch (error) {
     console.error("Add species error:", error);
@@ -103,6 +112,13 @@ export const deleteSpecies = async (req, res) => {
     if (!deletedSpecies) {
       return res.status(404).json({ message: "Species not found" });
     }
+
+    // Record history
+    await SpeciesHistory.create({
+      action: `Deleted species - ${deletedSpecies.CommonName || deletedSpecies.ScientificName}`,
+      speciesId: id,
+      details: deletedSpecies,
+    });
 
     res.status(200).json({ message: "Species deleted successfully" });
   } catch (error) {
@@ -167,6 +183,13 @@ export const updateSpecies = async (req, res) => {
     // Save updated species
     const updatedSpecies = await species.save();
 
+    // Record history
+    await SpeciesHistory.create({
+      action: "updated",
+      speciesId: updatedSpecies._id,
+      details: req.body, // store only updated fields
+    });
+
     res.status(200).json(updatedSpecies);
   } catch (error) {
     console.error("Error updating species:", error);
@@ -214,6 +237,21 @@ export const getSpeciesDashboard = async (req, res) => {
   } catch (error) {
     console.error("Dashboard data error:", error);
     res.status(500).json({ message: "Error fetching dashboard data", error });
+  }
+};
+
+// Get all species activity history (latest first)
+export const getSpeciesHistory = async (req, res) => {
+  try {
+    const history = await SpeciesHistory.find()
+      .sort({ createdAt: -1 })
+      .limit(10) // only last 10 activities
+      .populate("speciesId", "ScientificName CommonName");
+
+    res.status(200).json(history);
+  } catch (error) {
+    console.error("Get species history error:", error);
+    res.status(500).json({ message: "Error fetching species history", error });
   }
 };
 
