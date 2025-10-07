@@ -17,7 +17,8 @@ import {
   getStatusData,
   getKeyMetrics,
   getHotspots,
-  getReports
+  getReports,
+  updateReportStatus
 } from "../controller/reportController.js";
 
 const reportRouter = Router();
@@ -40,5 +41,6 @@ reportRouter.get("/status", getStatusData);
 reportRouter.get("/key-metrics", getKeyMetrics);
 reportRouter.get("/hotspots", getHotspots);
 reportRouter.get("/all-reports", getReports);
+reportRouter.put("/updateStatus/:id", updateReportStatus);
 
 export default reportRouter;

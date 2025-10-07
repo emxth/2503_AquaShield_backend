@@ -451,6 +451,7 @@ const getHotspots = asyncHandler(async (req, res) => {
   }
 });
 
+// Get all reports to display in admin dashboard
 const getReports = asyncHandler(async (req, res) => {
   try {
     const reports = await ReportModel.aggregate([
@@ -518,7 +519,32 @@ const getReports = asyncHandler(async (req, res) => {
   }
 });
 
+// Update report status (approve/reject)
+const updateReportStatus = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
+    if (!["CONFIRMED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+    const updatedReport = await ReportModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedReport) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    res.status(200).json({ message: `Report ${status.toLowerCase()} successfully`, report: updatedReport });
+  } catch (error) {
+    console.error("Update report status error:", error);
+    res.status(500).json({ error: "Failed to update report status" });
+  }
+});
 
 export {
     createNewReport,
@@ -537,5 +563,6 @@ export {
     getStatusData,
     getKeyMetrics,
     getHotspots,
-    getReports
+    getReports,
+    updateReportStatus
 }
