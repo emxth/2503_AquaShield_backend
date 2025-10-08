@@ -1,5 +1,5 @@
 import express from "express";
-import { addSpecies, getSpecies, getSpeciesById, deleteSpecies, updateSpecies, getSpeciesDashboard, getSpeciesHistory } from "../controllers/speciesController.js";
+import { addSpecies, getSpeciesSuggestions, getSpecies, getSpeciesById, deleteSpecies, updateSpecies, getSpeciesDashboard, getSpeciesHistory, searchSpecies, getEndangeredReport, getExtinctReport, getVulnerableReport} from "../controllers/speciesController.js";
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();
@@ -14,5 +14,12 @@ router.get("/getOneSpecies/:id", getSpeciesById);
 router.delete("/deleteSpecies/:id", deleteSpecies);
 router.put("/updateSpecies/:id", upload.single("image"), updateSpecies);
 
+router.get("/speciesSuggestions", getSpeciesSuggestions);
+router.get("/searchSpecies", searchSpecies);
+
+//--
+router.get("/report/endangered", getEndangeredReport);
+router.get("/report/extinct", getExtinctReport);
+router.get("/report/vulnerable", getVulnerableReport);
 
 export default router;

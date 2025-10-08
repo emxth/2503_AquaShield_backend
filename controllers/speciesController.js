@@ -3,6 +3,96 @@ import cloudinary from "../config/speciesCloudinary.js";
 import streamifier from "streamifier";
 import SpeciesHistory from "../models/speciesHistoryModel.js";
 
+//-----
+import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
+
+// Helper function: Create and send a PDF
+const generatePDFReport = async (res, title, data) => {
+  try {
+    const doc = new PDFDocument({ margin: 40 });
+    const filename = `${title.replace(/\s/g, "_")}.pdf`;
+    const filePath = path.join("uploads", filename);
+
+    // Ensure folder exists
+    if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
+
+    const stream = fs.createWriteStream(filePath);
+    doc.pipe(stream);
+
+    // Title
+    doc.fontSize(20).fillColor("#146C94").text(title, { align: "center" });
+    doc.moveDown(1);
+
+    // Table headers
+    doc.fontSize(12).fillColor("black");
+    doc.text("Scientific Name", 50, doc.y, { continued: true });
+    doc.text("Common Name", 200, doc.y, { continued: true });
+    doc.text("Category", 350, doc.y, { continued: true });
+    doc.text("Protection Level", 450, doc.y);
+    doc.moveDown(0.5);
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown(0.8);
+
+    // Data rows
+    data.forEach((s) => {
+      doc.text(s.ScientificName || "-", 50, doc.y, { continued: true });
+      doc.text(s.CommonName || "-", 200, doc.y, { continued: true });
+      doc.text(s.SpeciesCategory || "-", 350, doc.y, { continued: true });
+      doc.text(s.ProtectionLevel || "-", 450, doc.y);
+      doc.moveDown(0.5);
+    });
+
+    doc.end();
+
+    stream.on("finish", () => {
+      res.download(filePath, filename, (err) => {
+        if (err) console.error("PDF download error:", err);
+        fs.unlinkSync(filePath); // delete after sending
+      });
+    });
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    res.status(500).json({ message: "Error generating PDF report", error });
+  }
+};
+
+// --- Individual Reports ---
+export const getEndangeredReport = async (req, res) => {
+  try {
+    const endangeredSpecies = await Species.find({
+      ProtectionLevel: { $regex: /^endangered$/i },
+    });
+    await generatePDFReport(res, "Endangered Species Report", endangeredSpecies);
+  } catch (error) {
+    res.status(500).json({ message: "Error generating endangered report", error });
+  }
+};
+
+export const getExtinctReport = async (req, res) => {
+  try {
+    const extinctSpecies = await Species.find({
+      ProtectionLevel: { $regex: /^extinct$/i },
+    });
+    await generatePDFReport(res, "Extinct Species Report", extinctSpecies);
+  } catch (error) {
+    res.status(500).json({ message: "Error generating extinct report", error });
+  }
+};
+
+export const getVulnerableReport = async (req, res) => {
+  try {
+    const vulnerableSpecies = await Species.find({
+      ProtectionLevel: { $regex: /^vulnerable$/i },
+    });
+    await generatePDFReport(res, "Vulnerable Species Report", vulnerableSpecies);
+  } catch (error) {
+    res.status(500).json({ message: "Error generating vulnerable report", error });
+  }
+};
+//--
+
 // Add Species
 export const addSpecies = async (req, res) => {
   try {
@@ -252,6 +342,71 @@ export const getSpeciesHistory = async (req, res) => {
   } catch (error) {
     console.error("Get species history error:", error);
     res.status(500).json({ message: "Error fetching species history", error });
+  }
+};
+
+
+// Search Species by name or protection level
+export const searchSpecies = async (req, res) => {
+  try {
+    const { query, protectionLevel, page = 1, limit = 5 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const searchFilter = {};
+
+    // Search by scientific or common name
+    if (query) {
+      searchFilter.$or = [
+        { ScientificName: { $regex: query, $options: "i" } },
+        { CommonName: { $regex: query, $options: "i" } },
+      ];
+    }
+
+    // Filter by protection level
+    if (protectionLevel && protectionLevel !== "All") {
+      searchFilter.ProtectionLevel = protectionLevel;
+    }
+
+    const species = await Species.find(searchFilter)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Species.countDocuments(searchFilter);
+
+    res.status(200).json({
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      species,
+    });
+  } catch (error) {
+    console.error("Search species error:", error);
+    res.status(500).json({ message: "Error searching species", error });
+  }
+};
+
+// Live search suggestions (returns only names)
+export const getSpeciesSuggestions = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(200).json([]); // no suggestions for empty query
+    }
+
+    const suggestions = await Species.find({
+      $or: [
+        { ScientificName: { $regex: query, $options: "i" } },
+        { CommonName: { $regex: query, $options: "i" } },
+      ],
+    })
+      .limit(5)
+      .select("ScientificName CommonName");
+
+    res.status(200).json(suggestions);
+  } catch (error) {
+    console.error("Suggestions error:", error);
+    res.status(500).json({ message: "Error fetching suggestions" });
   }
 };
 

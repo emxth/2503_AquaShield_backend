@@ -116,6 +116,22 @@ const getIncidentTypes = asyncHandler(async (req, res) => {
     }
 });
 
+const getAllReportsDashboard = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.find();
+
+    const filterReports = reports.map((report) => {
+        if (report.isAnonymous) {
+            report.reporter = "Annoymous";
+        }
+        return report;
+    })
+
+    res.status(200).json(filterReports);  // send only once
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const updateReports = asyncHandler(async (req, res) => {
     try {
@@ -175,6 +191,8 @@ const deleteReport = asyncHandler(async (req, res) => {
     }
 })
 
+
+
 export {
     createNewReport,
     getSubmittedReports,
@@ -182,5 +200,6 @@ export {
     reportFilterBySatatus,
     getIncidentTypes,
     updateReports,
-    deleteReport
+    deleteReport,
+    getAllReportsDashboard
 };
