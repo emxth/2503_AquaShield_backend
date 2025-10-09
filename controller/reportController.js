@@ -3,7 +3,7 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import { json } from "express";
 import ReportModel from "../models/ReportModel.js";
-
+import SpeciesModel from '../models/speciesModel.js';
 
 //create a new report
 const createNewReport = asyncHandler(async (req, res) => {
@@ -27,7 +27,7 @@ const createNewReport = asyncHandler(async (req, res) => {
                 message: "Invalid location format",
                 error: parseError.message
             });
-        }
+        } 
 
         const newIncident = await ReportModel.create({
             reporter: req.user._id,
@@ -191,7 +191,26 @@ const deleteReport = asyncHandler(async (req, res) => {
     }
 })
 
+const getAllReportsResearcher = asyncHandler(async (req, res) => {
+  try {
+    // Fetch all reports and populate species details
+    const reports = await ReportModel.find()
+      .populate('species', 'commonName protectionLevel');
 
+    // Optional: Hide reporter info if anonymous
+    const filteredReports = reports.map((report) => {
+      if (report.isAnonymous) {
+        report.reporter = "Anonymous";
+      }
+      return report;
+    });
+
+    res.status(200).json(filteredReports);
+  } catch (err) {
+    console.error("Error fetching reports for researcher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export {
     createNewReport,
@@ -201,5 +220,6 @@ export {
     getIncidentTypes,
     updateReports,
     deleteReport,
-    getAllReportsDashboard
+    getAllReportsDashboard,
+    getAllReportsResearcher
 };
