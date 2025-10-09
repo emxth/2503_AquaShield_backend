@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import userModel from '../models/userModel.js'
 import jwt from 'jsonwebtoken'
 import { v2 as cloudinary } from 'cloudinary'
+import accountDeletionModel from "../models/accountDeletionModel.js";
 
 //API tO register user
 const registerUser = async(req,res) =>{
@@ -80,6 +81,10 @@ const getProfile = async(req,res)=>{
         
         const userData = await userModel.findById(req.userId).select('-password')
 
+        if (!userData) {
+  return res.status(404).json({ success: false, message: "User not found or deleted" });
+}
+
         res.json({ success: true, userData });
 
     } catch (error) {
@@ -121,7 +126,33 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// Request account deletion
+const requestAccountDeletion = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.userId).select("firstname lastname email");
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // Prevent duplicate requests
+    const existingRequest = await accountDeletionModel.findOne({ email: user.email, status: "Pending" });
+    if (existingRequest) {
+      return res.json({ success: false, message: "Deletion request already submitted" });
+    }
+
+    const newRequest = new accountDeletionModel({
+      firstname: user.firstname,
+      lastname: user.lastname,
+      email: user.email
+    });
+
+    await newRequest.save();
+    res.json({ success: true, message: "Account deletion request submitted" });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
 
 
-
-export {registerUser,loginUser,getProfile,updateProfile}
+export {registerUser,loginUser,getProfile,updateProfile,requestAccountDeletion}
