@@ -14,6 +14,8 @@ import feoRouter from './routes/feoRoute.js';
 import speciesRoutes from "./routes/speciesRoutes.js";
 import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 import { reportRouter } from "./routes/reportRoutes.js";
+import favoriteRoutes from './routes/favoritesRoutes.js';
+
 
 // console.log("Mongo URI:", process.env.MONGODB_URL);  
 //app config
@@ -33,7 +35,7 @@ app.use('/api/admin',adminRouter);
 app.use('/api/user',userRouter);
 app.use('/api/feo',feoRouter);
 app.use('/api/report', reportRouter);
-
+app.use('/api/favorites', favoriteRoutes);
 // Species Management Routes
 app.use("/species", speciesRoutes);
 app.use("/speciesRequest", speciesRequestRoutes);
