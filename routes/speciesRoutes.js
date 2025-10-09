@@ -1,5 +1,5 @@
 import express from "express";
-import { addSpecies, getSpeciesSuggestions, getSpecies, getSpeciesById, deleteSpecies, updateSpecies, getSpeciesDashboard, getSpeciesHistory, searchSpecies, getEndangeredReport, getExtinctReport, getVulnerableReport} from "../controllers/speciesController.js";
+import { addSpecies, getSpeciesSuggestions , getSpecies, getWikipediaInfo, getSpeciesById, deleteSpecies, updateSpecies, getSpeciesDashboard, getSpeciesHistory, searchSpecies, getEndangeredReport, getExtinctReport, getVulnerableReport} from "../controllers/speciesController.js";
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();
@@ -21,5 +21,7 @@ router.get("/searchSpecies", searchSpecies);
 router.get("/report/endangered", getEndangeredReport);
 router.get("/report/extinct", getExtinctReport);
 router.get("/report/vulnerable", getVulnerableReport);
+
+router.get("/wiki/:scientificName", getWikipediaInfo);
 
 export default router;

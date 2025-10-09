@@ -2,6 +2,7 @@ import Species from "../models/speciesModel.js";
 import cloudinary from "../config/speciesCloudinary.js";
 import streamifier from "streamifier";
 import SpeciesHistory from "../models/speciesHistoryModel.js";
+import axios from "axios";
 
 //-----
 import PDFDocument from "pdfkit";
@@ -410,3 +411,25 @@ export const getSpeciesSuggestions = async (req, res) => {
   }
 };
 
+export const getWikipediaInfo = async (req, res) => {
+  try {
+    const { scientificName } = req.params;
+    if (!scientificName) {
+      return res.status(400).json({ message: "Species name is required" });
+    }
+
+    const formattedName = scientificName.replace(/\s+/g, "_");
+    const wikiURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${formattedName}`;
+
+    const response = await axios.get(wikiURL);
+    return res.status(200).json(response.data);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      // Page not found
+      return res.status(404).json({ message: "No information found on Wikipedia" });
+    } else {
+      console.error("Wikipedia fetch error:", error.message);
+      return res.status(500).json({ message: "Error fetching Wikipedia info" });
+    }
+  }
+};
