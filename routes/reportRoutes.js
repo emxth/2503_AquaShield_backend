@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { uploadMulter } from "../middleware/uploadMulter.js";
-import { createNewReport, deleteReport, getAllReports, getAllReportsResearcher, getIncidentTypes, getSubmittedReports, reportFilterBySatatus, updateReports, getAllReportsDashboard } from "../controller/reportController.js";
+import { createNewReport, deleteReport, getAllReports, getAllReportsResearcher, exportFilteredReports, getIncidentTypes, getSubmittedReports, reportFilterBySatatus, updateReports, getAllReportsDashboard } from "../controller/reportController.js";
 
 const router = Router();
 
 router.post("/create", uploadMulter.single("file"), createNewReport);
+router.post("/exportFilteredReports", exportFilteredReports);
 router.get("/getReports", getSubmittedReports);
 router.get("/getAllReports", getAllReports);
 
