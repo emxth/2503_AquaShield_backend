@@ -10,47 +10,166 @@ import fs from "fs";
 import path from "path";
 
 // Helper function: Create and send a PDF
-const generatePDFReport = async (res, title, data) => {
+// const generatePDFReport = async (res, title, data) => {
+//   try {
+//     const doc = new PDFDocument({ margin: 40 });
+//     const filename = `${title.replace(/\s/g, "_")}.pdf`;
+//     const filePath = path.join("uploads", filename);
+
+//     // Ensure folder exists
+//     if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
+
+//     const stream = fs.createWriteStream(filePath);
+//     doc.pipe(stream);
+
+//     // Title
+//     doc.fontSize(20).fillColor("#146C94").text(title, { align: "center" });
+//     doc.moveDown(1);
+
+//     // Table headers
+//     doc.fontSize(12).fillColor("black");
+//     doc.text("Scientific Name", 50, doc.y, { continued: true });
+//     doc.text("Common Name", 200, doc.y, { continued: true });
+//     doc.text("Category", 350, doc.y, { continued: true });
+//     doc.text("Protection Level", 450, doc.y);
+//     doc.moveDown(0.5);
+//     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+//     doc.moveDown(0.8);
+
+//     // Data rows
+//     data.forEach((s) => {
+//       doc.text(s.ScientificName || "-", 50, doc.y, { continued: true });
+//       doc.text(s.CommonName || "-", 200, doc.y, { continued: true });
+//       doc.text(s.SpeciesCategory || "-", 350, doc.y, { continued: true });
+//       doc.text(s.ProtectionLevel || "-", 450, doc.y);
+//       doc.moveDown(0.5);
+//     });
+
+//     doc.end();
+
+//     stream.on("finish", () => {
+//       res.download(filePath, filename, (err) => {
+//         if (err) console.error("PDF download error:", err);
+//         fs.unlinkSync(filePath); // delete after sending
+//       });
+//     });
+//   } catch (error) {
+//     console.error("PDF generation error:", error);
+//     res.status(500).json({ message: "Error generating PDF report", error });
+//   }
+// };
+export const generatePDFReport = async (res, title, data) => {
   try {
-    const doc = new PDFDocument({ margin: 40 });
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
     const filename = `${title.replace(/\s/g, "_")}.pdf`;
     const filePath = path.join("uploads", filename);
 
-    // Ensure folder exists
     if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
-
     const stream = fs.createWriteStream(filePath);
     doc.pipe(stream);
 
-    // Title
-    doc.fontSize(20).fillColor("#146C94").text(title, { align: "center" });
+    // ===== HEADER =====
+    doc.rect(0, 0, doc.page.width, 70).fill("#146C94");
+    doc
+      .fillColor("#ffffff")
+      .fontSize(28)
+      .font("Helvetica-Bold")
+      .text("AquaShield", 50, 25, { align: "left" });
+    doc.moveDown(2);
+    doc.fillColor("#000000").font("Helvetica");
+
+    // ===== TITLE =====
+    doc.moveDown(1.5);
+    doc
+      .fontSize(20)
+      .fillColor("#146C94")
+      .text(title, { align: "center" });
+    doc.moveDown(0.3);
+    doc
+      .fontSize(10)
+      .fillColor("gray")
+      .text(`Generated on: ${new Date().toLocaleString()}`, { align: "center" });
+    doc.moveDown(1.2);
+    doc
+      .moveTo(50, doc.y)
+      .lineTo(550, doc.y)
+      .stroke("#19A7CE");
     doc.moveDown(1);
 
-    // Table headers
-    doc.fontSize(12).fillColor("black");
-    doc.text("Scientific Name", 50, doc.y, { continued: true });
-    doc.text("Common Name", 200, doc.y, { continued: true });
-    doc.text("Category", 350, doc.y, { continued: true });
-    doc.text("Protection Level", 450, doc.y);
-    doc.moveDown(0.5);
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-    doc.moveDown(0.8);
-
-    // Data rows
-    data.forEach((s) => {
-      doc.text(s.ScientificName || "-", 50, doc.y, { continued: true });
-      doc.text(s.CommonName || "-", 200, doc.y, { continued: true });
-      doc.text(s.SpeciesCategory || "-", 350, doc.y, { continued: true });
-      doc.text(s.ProtectionLevel || "-", 450, doc.y);
+    // ===== SPECIES CARDS =====
+    data.forEach((s, index) => {
+      // Card background
+      doc
+        .rect(45, doc.y, 510, 120)
+        .fill(index % 2 === 0 ? "#F8F9FA" : "#E8F4F8");
+      doc.fillColor("#000000").font("Helvetica").fontSize(12);
       doc.moveDown(0.5);
+
+      const yTop = doc.y + 5;
+      const padding = 15;
+      const textX = 60;
+
+      // Title line
+      doc
+        .fillColor("#146C94")
+        .font("Helvetica-Bold")
+        .fontSize(14)
+        .text(`${index + 1}. ${s.CommonName || "Unknown Species"}`, textX, yTop);
+      doc.moveDown(0.3);
+
+      // Info text
+      doc.fillColor("black").fontSize(11);
+      doc.text(`Scientific Name: ${s.ScientificName || "-"}`, textX);
+      doc.text(`Category: ${s.SpeciesCategory || "-"}`, textX);
+      doc.text(`Protection Level: ${s.ProtectionLevel || "-"}`, textX);
+
+      if (s.Description) {
+        doc.moveDown(0.3);
+        doc.fontSize(10).fillColor("gray").text(`Description: ${s.Description}`, {
+          width: 460,
+          align: "justify",
+        });
+      }
+
+      // Image (optional)
+      if (s.ImageURL) {
+        try {
+          const imagePath = s.ImageURL.startsWith("http")
+            ? s.ImageURL
+            : path.resolve(`uploads/${s.ImageURL}`);
+          doc.image(imagePath, 420, yTop, { width: 80, height: 80 }).rect(420, yTop, 80, 80).stroke();
+        } catch {
+          // ignore image load errors
+        }
+      }
+
+      doc.moveDown(4.2);
+      doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke("#D3D3D3");
+      doc.moveDown(1.5);
+
+      // Add page if near end
+      if (doc.y > 700) {
+        doc.addPage();
+        doc.moveDown(1.5);
+      }
     });
+
+    // ===== FOOTER =====
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      const bottom = doc.page.height - 50;
+      doc.fontSize(9).fillColor("gray");
+      doc.text("Generated by AquaShield", 50, bottom, { align: "left" });
+      doc.text(`Page ${i + 1} of ${pageCount}`, -50, bottom, { align: "right" });
+    }
 
     doc.end();
 
     stream.on("finish", () => {
       res.download(filePath, filename, (err) => {
         if (err) console.error("PDF download error:", err);
-        fs.unlinkSync(filePath); // delete after sending
+        fs.unlinkSync(filePath);
       });
     });
   } catch (error) {
