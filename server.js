@@ -14,7 +14,6 @@ import feoRouter from './routes/feoRoute.js';
 import speciesRoutes from "./routes/speciesRoutes.js";
 import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 import { reportRouter } from "./routes/reportRoutes.js";
-import passwordRouter from "./routes/passwordRoute.js";
 
 // App config
 const app = express();
@@ -34,7 +33,6 @@ app.use('/api/admin',adminRouter);
 app.use('/api/user',userRouter);
 app.use('/api/feo',feoRouter);
 app.use('/api/report', reportRouter);
-app.use("/api/password", passwordRouter);
 
 app.get('/',(req,res)=>{
   res.send('API Working')
