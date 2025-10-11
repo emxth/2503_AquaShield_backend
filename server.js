@@ -14,18 +14,14 @@ import feoRouter from './routes/feoRoute.js';
 import speciesRoutes from "./routes/speciesRoutes.js";
 import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 import reportRouter from "./routes/reportRoutes.js";
+import notifyRouter from './routes/notificationRoute.js';
 
 // App config
 const app = express();
 const port = process.env.PORT || 8081;
-connectDB()
-connectCloudinary()
-dotenv.config();
+connectDB();
 
-// Database Connection
-//connect(process.env.MONGODB_URL)
-//  .then(() => console.log('Connected to MongoDB'))
-//  .catch(err => console.error('MongoDB connection error:', err));
+dotenv.config();
 
 // Middlewares
 app.use(express.json());
@@ -37,12 +33,13 @@ app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
 app.use('/api/feo', feoRouter);
 app.use('/api/report', reportRouter);
+app.use('/api/notification', notifyRouter);
 
 app.get('/', (req, res) => {
   res.send('API Working')
 })
 
 // Start server
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+// app.listen(port, '0.0.0.0', () => {
+//   console.log(`Server running on port http://0.0.0.0:${port}`);
+// });
