@@ -4,6 +4,7 @@ const { Schema, model } = mongoose;
 
 const reportSchema = new Schema({
     reporter: { type: mongoose.Types.ObjectId, ref: "User", required: true },
+    isAnonymous: { type: Boolean, default: false },
     location: {
         type: {
             type: String,
@@ -13,7 +14,7 @@ const reportSchema = new Schema({
         },
         coordinates: {
             type: [Number], // [longitude, latitude]
-            required: true
+            required: false
         },
         description: {
             type: String,
@@ -21,7 +22,7 @@ const reportSchema = new Schema({
         }
     },
     date: { type: Date, default: Date.now },
-    time: { type: Date, default: Date.now },
+    time: { type: String, default: Date.now },
     incidentType: {
         type: String,
         enum: [
@@ -39,16 +40,15 @@ const reportSchema = new Schema({
         required: true
     },
     species: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'species',
-        required: true
+        type: String,
+        required: false
     },
     description: { type: String },
     evidencePhotos: [
         {
             url: { type: String, required: true },
             public_id: { type: String, required: true },
-            resource_type: { type: String, enum: ["image", "video"], required: true },
+            resource_type: { type: String, enum: ["image", "video"], required: false },
         },
     ],
     status: {

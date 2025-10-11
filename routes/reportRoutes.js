@@ -1,20 +1,37 @@
 import { Router } from "express";
 import { uploadMulter } from "../middleware/uploadMulter.js";
-import { createNewReport, deleteReport, getAllReports, getAllReportsResearcher, exportFilteredReports, getIncidentTypes, getSubmittedReports, reportFilterBySatatus, updateReports, getAllReportsDashboard } from "../controller/reportController.js";
+import { 
+  createNewReport, 
+  deleteSubmitReport, 
+  getAllReports, 
+  getIncidentTypes, 
+  getSpecificReports, 
+  getSubmittedReports, 
+  reportFilterBySatatus, 
+  updateReports, 
+  updateReportStatus,
+  deleteReport, 
+  getAllReportsResearcher, 
+  exportFilteredReports, 
+  getAllReportsDashboard 
+} from "../controller/reportController.js";
 
-const router = Router();
+const reportRouter = Router();
 
-router.post("/create", uploadMulter.single("file"), createNewReport);
-router.post("/exportFilteredReports", exportFilteredReports);
-router.get("/getReports", getSubmittedReports);
-router.get("/getAllReports", getAllReports);
+reportRouter.post("/create", uploadMulter.array("evidence"), createNewReport);
+reportRouter.get("/getReports", getSubmittedReports);
+reportRouter.get("/getAllReports", getAllReports);
+reportRouter.get("/filteredReport", reportFilterBySatatus);
+reportRouter.get("/incidentType", getIncidentTypes);
+reportRouter.put("/updateReport/:id", uploadMulter.array("evidence"), updateReports);
+reportRouter.delete("/deleteReport/:id", deleteSubmitReport);
+reportRouter.get("/getSpecificReport/:id", getSpecificReports);
+reportRouter.put("/reportAction/:id", updateReportStatus);
 
-router.get("/getAllReportsResearcher", getAllReportsResearcher);
-router.get("/getAllReportsDashboard", getAllReportsDashboard);
-router.get("/filteredReport", reportFilterBySatatus);
-router.get("/incidentType", getIncidentTypes);
-router.put("/updateReport", updateReports);
-router.delete("/deleteReport", deleteReport);
+// Routes for Species Management
+reportRouter.post("/create", uploadMulter.single("file"), createNewReport);
+reportRouter.post("/exportFilteredReports", exportFilteredReports);
+reportRouter.put("/updateReport", updateReports);
+reportRouter.delete("/deleteReport", deleteReport);
 
-
-export { router as reportRouter };
+export default reportRouter;
