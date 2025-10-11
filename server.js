@@ -22,12 +22,6 @@ const port = process.env.PORT || 8081;
 connectDB();
 
 dotenv.config();
-//connectCloudinary();
-
-// Database Connection
-//connect(process.env.MONGODB_URL)
-//  .then(() => console.log('Connected to MongoDB'))
-//  .catch(err => console.error('MongoDB connection error:', err));
 
 // Middlewares
 app.use(express.json());
@@ -46,6 +40,6 @@ app.get('/', (req, res) => {
 })
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port http://0.0.0.0:${port}`);
-});
+// app.listen(port, '0.0.0.0', () => {
+//   console.log(`Server running on port http://0.0.0.0:${port}`);
+// });
