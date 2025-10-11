@@ -92,7 +92,7 @@ const getSpecificReports = asyncHandler(async (req, res) => {
 
     const reports = await ReportModel.findById({ _id: reportId });
     res.status(200).json(reports);
-})
+});
 
 //report filter by status
 const reportFilterBySatatus = asyncHandler(async (req, res) => {
@@ -103,7 +103,7 @@ const reportFilterBySatatus = asyncHandler(async (req, res) => {
     res.status(200).json(reports);
 
 
-})
+});
 
 const getAllReports = asyncHandler(async (req, res) => {
 
@@ -133,7 +133,7 @@ const getAllReports = asyncHandler(async (req, res) => {
 
     }
 
-})
+});
 
 const getIncidentTypes = asyncHandler(async (req, res) => {
     try {
@@ -331,6 +331,369 @@ const deleteSubmitReport = asyncHandler(async (req, res) => {
     }
 });
 
+// Get recent 5 reports
+const getRecentReports = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.find()
+      .populate("species", "CommonName ScientificName ProtectionStatus SpeciesCategory") // populate species name
+      .select('location description incidentType status date time evidencePhotos')
+      .sort({ date: -1 }) // latest first
+      .limit(5);
+
+    const formatted = reports.map((r, i) => ({
+      id: r._id,
+      species: r.species?.CommonName || "Tuna",
+      location: r.location || "Unknown Location",
+      date: r.date.toISOString().split("T")[0],
+      status: r.status.toLowerCase(),
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch reports" });
+  }
+});
+
+// Get monthly trend data
+const getTrendData = asyncHandler(async (req, res) => {
+  try {
+    const result = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: { $month: "$date" },
+          incidents: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id": 1 } },
+    ]);
+
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const formatted = result.map(r => ({
+      month: months[r._id - 1],
+      incidents: r.incidents,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch trend data" });
+  }
+});
+
+// Get most reported species
+const getSpeciesData = asyncHandler(async (req, res) => {
+  try {
+    const result = await ReportModel.aggregate([
+      { $group: { _id: "$species", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: "species",
+          localField: "_id",
+          foreignField: "_id",
+          as: "speciesDetails",
+        },
+      },
+      { $unwind: "$speciesDetails" },
+      { $project: { species: "$speciesDetails.CommonName", count: 1 } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch species data" });
+  }
+});
+
+// Get monthly statistics
+const getMonthlyStats = asyncHandler(async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const stats = await ReportModel.aggregate([
+      {
+        $match: {
+          date: { $gte: startOfMonth, $lte: endOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalReports: { $sum: 1 },
+          pending: {
+            $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] }
+          },
+          approved: {
+            $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] }
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ["$status", "REJECTED"] }, 1, 0] }
+          },
+          cancelled: {
+            $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] }
+          },
+        },
+      },
+      {
+        $project: {
+          totalReports: 1,
+          pending: 1,
+          approved: 1,
+          rejected: 1,
+          cancelled: 1,
+          successRate: {
+            $multiply: [
+              { $divide: ["$approved", "$totalReports"] },
+              100
+            ]
+          }
+        }
+      }
+    ]);
+
+    const result = stats[0] || {
+      totalReports: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      cancelled: 0,
+      successRate: 0
+    };
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching monthly stats:", error);
+    res.status(500).json({ error: "Failed to fetch monthly stats" });
+  }
+});
+
+// Get monthly frequency data (incidents vs prevented)
+const getMonthlyFrequency = asyncHandler(async (req, res) => {
+  try {
+    const data = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: { month: { $month: "$date" } },
+          incidents: { $sum: 1 },
+          prevented: { $sum: { $cond: [{ $eq: ["$status", "CONFIRMED"] }, 1, 0] } },
+        },
+      },
+      { $sort: { "_id.month": 1 } },
+    ]);
+
+    // Map month numbers → names
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    const formatted = data.map((item) => ({
+      month: months[item._id.month - 1],
+      incidents: item.incidents,
+      prevented: item.prevented,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Frequency stats error:", error);
+    res.status(500).json({ message: "Error fetching frequency data" });
+  }
+});
+
+// Get status distribution data
+const getStatusData = asyncHandler(async (req, res) => {
+  try {
+    const data = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          value: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const formatted = data.map((item) => ({
+      name: item._id,
+      value: item.value,
+      color:
+        item._id === "Approved"
+          ? "hsl(var(--primary))"
+          : item._id === "Pending"
+          ? "hsl(var(--muted))"
+          : "hsl(var(--destructive))",
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Status stats error:", error);
+    res.status(500).json({ message: "Error fetching status data" });
+  }
+});
+
+// Get key metrics for statistics
+const getKeyMetrics = asyncHandler(async (req, res) => {
+  try {
+    // Total incidents (this year)
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+
+    const totalIncidents = await ReportModel.countDocuments({
+      date: { 
+        $gte: startOfYear
+      }
+    });
+
+    // Prevented incidents (status = Approved)
+    const prevented = await ReportModel.countDocuments({ status: "CONFIRMED" });
+
+    // Active hotspots (example: group by location where count > 5)
+    const hotspots = await ReportModel.aggregate([
+      { $group: { _id: "$location", count: { $sum: 1 } } },
+      { $match: { count: { $gte: 5 } } }
+    ]);
+
+    const preventionRate = totalIncidents > 0 
+      ? ((prevented / totalIncidents) * 100).toFixed(1)
+      : 0;
+
+    res.json({
+      totalIncidents,
+      prevented,
+      preventionRate,
+      activeHotspots: hotspots.length,
+    });
+  } catch (error) {
+    console.error("Key metrics error:", error);
+    res.status(500).json({ message: "Error fetching key metrics" });
+  }
+});
+
+// Get top 5 hotspots by incident count
+const getHotspots = asyncHandler(async (req, res) => {
+  try {
+    const hotspots = await ReportModel.aggregate([
+      {
+        $group: {
+          _id: "$location.description", // group by region/description
+          incidents: { $sum: 1 },
+          lat: { $first: { $arrayElemAt: ["$location.coordinates", 1] } }, // latitude
+          lng: { $first: { $arrayElemAt: ["$location.coordinates", 0] } }, // longitude
+        },
+      },
+      { $sort: { incidents: -1 } }, // sort by highest incidents
+      { $limit: 5 }, // top 5
+    ]);
+
+    const formatted = hotspots.map((h) => ({
+      region: h._id,
+      incidents: h.incidents,
+      lat: h.lat,
+      lng: h.lng,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Error fetching hotspots:", error);
+    res.status(500).json({ message: "Error fetching hotspots" });
+  }
+});
+
+// Get all reports to display in admin dashboard
+const getReports = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.aggregate([
+      {
+        $lookup: {
+          from: "species",
+          localField: "species",
+          foreignField: "_id",
+          as: "speciesData",
+        },
+      },
+      { $unwind: { path: "$speciesData", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "reporter",
+          foreignField: "_id",
+          as: "reporterData",
+        },
+      },
+      { $unwind: { path: "$reporterData", preserveNullAndEmptyArrays: true } },
+
+      { $sort: { date: -1 } },
+
+      {
+        $project: {
+          id: "$_id",
+          species: { $ifNull: ["$speciesData.CommonName", "Unknown Species"] },
+          location: "$location.description",
+          coordinates: "$location.coordinates",
+          // Safely handle invalid or string dates
+          date: {
+            $cond: {
+              if: { $eq: [{ $type: "$date" }, "date"] },
+              then: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+              else: "Unknown",
+            },
+          },
+          time: {
+            $cond: {
+              if: { $eq: [{ $type: "$time" }, "date"] },
+              then: { $dateToString: { format: "%H:%M:%S", date: "$time" } },
+              else: "Unknown",
+            },
+          },
+          incidentType: 1,
+          status: { $toLower: "$status" },
+          reporter: {
+            $cond: {
+              if: "$isAnonymous",
+              then: "Anonymous",
+              else: { $ifNull: ["$reporterData.name", "Unknown Reporter"] },
+            },
+          },
+          evidencePhotos: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error("Error in getReports aggregation:", error);
+    res.status(500).json({ error: "Failed to fetch reports" });
+  }
+});
+
+// Update report status (approve/reject)
+const updateReportStatusAdmin = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["CONFIRMED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+    const updatedReport = await ReportModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedReport) {
+      return res.status(404).json({ error: "Report not found" });
+    }
+
+    res.status(200).json({ message: `Report ${status.toLowerCase()} successfully`, report: updatedReport });
+  } catch (error) {
+    console.error("Update report status error:", error);
+    res.status(500).json({ error: "Failed to update report status" });
+  }
+});
+
 const getAllReportsResearcher = asyncHandler(async (req, res) => {
   try {
     const reports = await ReportModel.find();
@@ -360,55 +723,6 @@ const getAllReportsResearcher = asyncHandler(async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// const exportFilteredReports = asyncHandler(async (req, res) => {
-//   try {
-//     const reports = req.body; // frontend sends filteredReports array
-
-//     if (!reports || reports.length === 0) {
-//       return res.status(400).json({ error: 'No reports provided for export.' });
-//     }
-
-//     // Generate PDF
-//     const doc = new PDFDocument({ margin: 30, size: 'A4' });
-//     let buffers = [];
-//     doc.on('data', buffers.push.bind(buffers));
-//     doc.on('end', () => {
-//       const pdfData = Buffer.concat(buffers);
-//       res
-//         .writeHead(200, {
-//           'Content-Type': 'application/pdf',
-//           'Content-Disposition': 'attachment; filename=Filtered_Incident_Report.pdf',
-//           'Content-Length': pdfData.length,
-//         })
-//         .end(pdfData);
-//     });
-
-//     doc.fontSize(24).text('AquaShield', { align: 'left' });
-//     doc.fontSize(18).text('Incident Reports', { align: 'center' });
-//     doc.moveDown(1);
-
-//     reports.forEach((report, index) => {
-//       const species = report.species || {};
-//       const location = report.location || {};
-
-//       doc.fontSize(14).fillColor('blue').text(`${index + 1}. ${species.CommonName || 'Unknown'}`);
-//       doc.fontSize(12).fillColor('black');
-//       doc.text(`Scientific Name: ${species.ScientificName || 'Unknown'}`);
-//       doc.text(`Protection Level: ${species.ProtectionLevel || 'N/A'}`);
-//       doc.text(`Incident Type: ${report.incidentType || 'N/A'}`);
-//       doc.text(`Location: ${location.description || 'N/A'}`);
-//       doc.text(`Date: ${report.date ? new Date(report.date).toISOString().split('T')[0] : 'N/A'}`);
-//       doc.text(`Report Status: ${report.status || 'N/A'}`);
-//       doc.moveDown(1);
-//     });
-
-//     doc.end();
-//   } catch (err) {
-//     console.error('Error exporting filtered reports:', err);
-//     res.status(500).json({ error: 'Failed to export filtered reports' });
-//   }
-// }); 
 
 const exportFilteredReports = asyncHandler(async (req, res) => {
   try {
@@ -501,6 +815,17 @@ export {
     getIncidentTypes,
     updateReports,
     deleteReport,
+    getSpecificReports,
+    getRecentReports,
+    getTrendData,
+    getSpeciesData,
+    getMonthlyStats,
+    getMonthlyFrequency,
+    getStatusData,
+    getKeyMetrics,
+    getHotspots,
+    getReports,
+    updateReportStatusAdmin,
     getAllReportsDashboard,
     getAllReportsResearcher,
     exportFilteredReports

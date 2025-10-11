@@ -44,6 +44,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
 app.use('/api/feo', feoRouter);
 app.use('/api/report', reportRouter);
+app.use("/api/species", speciesRoutes);
 app.use('/api/favorites', favoriteRoutes);
 
 // Species Management Routes
