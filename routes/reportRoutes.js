@@ -1,7 +1,20 @@
 import { Router } from "express";
 import { uploadMulter } from "../middleware/uploadMulter.js";
-import { createNewReport, deleteSubmitReport, getAllReports, getIncidentTypes, getSpecificReports, getSubmittedReports, reportFilterBySatatus, updateReports, updateReportStatus } from "../controller/reportController.js";
-
+import { 
+  createNewReport, 
+  deleteSubmitReport, 
+  getAllReports, 
+  getIncidentTypes, 
+  getSpecificReports, 
+  getSubmittedReports, 
+  reportFilterBySatatus, 
+  updateReports, 
+  updateReportStatus,
+  deleteReport, 
+  getAllReportsResearcher, 
+  exportFilteredReports, 
+  getAllReportsDashboard 
+} from "../controller/reportController.js";
 
 const reportRouter = Router();
 
@@ -14,5 +27,11 @@ reportRouter.put("/updateReport/:id", uploadMulter.array("evidence"), updateRepo
 reportRouter.delete("/deleteReport/:id", deleteSubmitReport);
 reportRouter.get("/getSpecificReport/:id", getSpecificReports);
 reportRouter.put("/reportAction/:id", updateReportStatus);
+
+// Routes for Species Management
+reportRouter.post("/create", uploadMulter.single("file"), createNewReport);
+reportRouter.post("/exportFilteredReports", exportFilteredReports);
+reportRouter.put("/updateReport", updateReports);
+reportRouter.delete("/deleteReport", deleteReport);
 
 export default reportRouter;

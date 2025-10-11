@@ -3,7 +3,8 @@ import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import { json } from "express";
 import ReportModel from "../models/ReportModel.js";
-
+import SpeciesModel from '../models/speciesModel.js';
+import PDFDocument from 'pdfkit';
 
 //create a new report
 const createNewReport = asyncHandler(async (req, res) => {
@@ -27,49 +28,7 @@ const createNewReport = asyncHandler(async (req, res) => {
                 minute: '2-digit',
                 second: '2-digit'
             });
-
-        console.log("📅 Using Date:", incidentDate);
-        console.log("⏰ Using Time:", incidentTime);
-        console.log("Longitude:", parsedLocation.lng, "Type:", typeof parsedLocation.lng);
-        console.log("Latitude:", parsedLocation.lat, "Type:", typeof parsedLocation.lat);
-
-        console.log("📍 Location Data Received:", {
-            lng: parsedLocation.lng,
-            lat: parsedLocation.lat,
-            hasLng: !!parsedLocation.lng,
-            hasLat: !!parsedLocation.lat,
-            lngType: typeof parsedLocation.lng,
-            latType: typeof parsedLocation.lat
-        });
-
-        // CRITICAL FIX: Validate coordinates before using them
-        let coordinates = null;
-
-        if (parsedLocation.lng !== null && parsedLocation.lat !== null &&
-            parsedLocation.lng !== undefined && parsedLocation.lat !== undefined) {
-
-            const lng = parseFloat(parsedLocation.lng);
-            const lat = parseFloat(parsedLocation.lat);
-
-            if (!isNaN(lng) && !isNaN(lat)) {
-                coordinates = [lng, lat];
-            }
-        }
-
-        // If coordinates are invalid, don't create geo point
-        let locationData = {
-            description: parsedLocation.description || "Location not specified"
-        };
-
-        if (coordinates) {
-            locationData.type = "Point";
-            locationData.coordinates = coordinates;
-        } else {
-            // Create without geo data to avoid the error
-            console.warn("⚠️ Invalid coordinates - creating report without geo data");
-            locationData.type = "Point";
-            locationData.coordinates = undefined; // Don't include invalid coordinates
-        }
+        } 
 
         const evidence = req.files ? req.files.map(file => ({
             url: file.path,
@@ -189,6 +148,23 @@ const getIncidentTypes = asyncHandler(async (req, res) => {
             error: 'Failed to fetch incident types'
         });
     }
+});
+
+const getAllReportsDashboard = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.find();
+
+    const filterReports = reports.map((report) => {
+        if (report.isAnonymous) {
+            report.reporter = "Annoymous";
+        }
+        return report;
+    })
+
+    res.status(200).json(filterReports);  // send only once
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const updateReportStatus = asyncHandler(async (req, res) => {
@@ -355,12 +331,179 @@ const deleteSubmitReport = asyncHandler(async (req, res) => {
     }
 });
 
+const getAllReportsResearcher = asyncHandler(async (req, res) => {
+  try {
+    const reports = await ReportModel.find();
+
+    // Extract all species IDs
+    const speciesIds = reports.map((r) => r.species);
+
+    // Fetch species details in a single query
+    const speciesList = await SpeciesModel.find({ _id: { $in: speciesIds } })
+      .select('CommonName ProtectionLevel ScientificName ImageURL Description');
+
+    // Create a lookup map for quick access
+    const speciesMap = speciesList.reduce((acc, sp) => {
+      acc[sp._id.toString()] = sp;
+      return acc;
+    }, {});
+
+    // Merge manually
+    const enrichedReports = reports.map((r) => ({
+      ...r.toObject(),
+      species: speciesMap[r.species?.toString()] || null,
+    }));
+
+    res.status(200).json(enrichedReports);
+  } catch (err) {
+    console.error("Error fetching reports:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// const exportFilteredReports = asyncHandler(async (req, res) => {
+//   try {
+//     const reports = req.body; // frontend sends filteredReports array
+
+//     if (!reports || reports.length === 0) {
+//       return res.status(400).json({ error: 'No reports provided for export.' });
+//     }
+
+//     // Generate PDF
+//     const doc = new PDFDocument({ margin: 30, size: 'A4' });
+//     let buffers = [];
+//     doc.on('data', buffers.push.bind(buffers));
+//     doc.on('end', () => {
+//       const pdfData = Buffer.concat(buffers);
+//       res
+//         .writeHead(200, {
+//           'Content-Type': 'application/pdf',
+//           'Content-Disposition': 'attachment; filename=Filtered_Incident_Report.pdf',
+//           'Content-Length': pdfData.length,
+//         })
+//         .end(pdfData);
+//     });
+
+//     doc.fontSize(24).text('AquaShield', { align: 'left' });
+//     doc.fontSize(18).text('Incident Reports', { align: 'center' });
+//     doc.moveDown(1);
+
+//     reports.forEach((report, index) => {
+//       const species = report.species || {};
+//       const location = report.location || {};
+
+//       doc.fontSize(14).fillColor('blue').text(`${index + 1}. ${species.CommonName || 'Unknown'}`);
+//       doc.fontSize(12).fillColor('black');
+//       doc.text(`Scientific Name: ${species.ScientificName || 'Unknown'}`);
+//       doc.text(`Protection Level: ${species.ProtectionLevel || 'N/A'}`);
+//       doc.text(`Incident Type: ${report.incidentType || 'N/A'}`);
+//       doc.text(`Location: ${location.description || 'N/A'}`);
+//       doc.text(`Date: ${report.date ? new Date(report.date).toISOString().split('T')[0] : 'N/A'}`);
+//       doc.text(`Report Status: ${report.status || 'N/A'}`);
+//       doc.moveDown(1);
+//     });
+
+//     doc.end();
+//   } catch (err) {
+//     console.error('Error exporting filtered reports:', err);
+//     res.status(500).json({ error: 'Failed to export filtered reports' });
+//   }
+// }); 
+
+const exportFilteredReports = asyncHandler(async (req, res) => {
+  try {
+    const reports = req.body; // frontend sends filteredReports array
+
+    if (!reports || reports.length === 0) {
+      return res.status(400).json({ error: 'No reports provided for export.' });
+    }
+
+    // Initialize PDF
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    let buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => {
+      const pdfData = Buffer.concat(buffers);
+      res
+        .writeHead(200, {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment; filename=Filtered_Incident_Report.pdf',
+          'Content-Length': pdfData.length,
+        })
+        .end(pdfData);
+    });
+
+    // --- Header ---
+    doc.fontSize(26).fillColor('#146C94').text('AquaShield', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(18).fillColor('black').text('Incident Reports', { align: 'center' });
+    doc.moveDown(1);
+
+    // --- Table Style ---
+    reports.forEach((report, index) => {
+      const species = report.species || {};
+      const location = report.location || {};
+
+      // Report title bar
+      doc
+        .rect(doc.x, doc.y, 540, 20)
+        .fill(index % 2 === 0 ? '#AFD3E2' : '#F6F1F1'); // alternating row colors
+      doc.fillColor('black').fontSize(14).text(
+        `${index + 1}. ${species.CommonName || 'Unknown'}`,
+        { continued: false, align: 'left', lineGap: 2, underline: true }
+      );
+      doc.moveDown(0.3);
+
+      // Report details
+      doc.fontSize(12).fillColor('black');
+      doc.text(`Scientific Name   : ${species.ScientificName || 'Unknown'}`);
+      doc.text(`Protection Level : ${species.ProtectionLevel || 'N/A'}`);
+      doc.text(`Incident Type    : ${report.incidentType || 'N/A'}`);
+      doc.text(`Location         : ${location.description || 'N/A'}`);
+      doc.text(`Date             : ${report.date ? new Date(report.date).toISOString().split('T')[0] : 'N/A'}`);
+      doc.text(`Report Status    : ${report.status || 'N/A'}`);
+      // Species description
+      if (species.Description) {
+        doc.fontSize(12).fillColor('#333').font('Times-Italic')
+           .text(`Description: ${species.Description}`, { lineGap: 2 });
+        doc.moveDown(0.5);
+        doc.font('Helvetica'); // reset to normal font
+      }
+
+      doc.moveDown(1);
+
+      // Separator line
+      doc.moveTo(doc.x, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke('#CCCCCC');
+      doc.moveDown(1);
+    });
+
+    // --- Footer ---
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(10).fillColor('gray').text(`Page ${i + 1} of ${pageCount}`, 0, doc.page.height - 40, {
+        align: 'center',
+      });
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error('Error exporting filtered reports:', err);
+    res.status(500).json({ error: 'Failed to export filtered reports' });
+  }
+});
+
 export {
     createNewReport,
     getSubmittedReports,
     getAllReports,
     reportFilterBySatatus,
     getIncidentTypes,
+    updateReports,
+    deleteReport,
+    getAllReportsDashboard,
+    getAllReportsResearcher,
+    exportFilteredReports
     deleteSubmitReport,
     getSpecificReports,
     updateReportStatus
