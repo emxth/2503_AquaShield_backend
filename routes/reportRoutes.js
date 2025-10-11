@@ -3,12 +3,19 @@ import { uploadMulter } from "../middleware/uploadMulter.js";
 import _default from "validator";
 import { 
   createNewReport, 
-  deleteReport, 
+  deleteSubmitReport, 
   getAllReports, 
   getIncidentTypes, 
+  getSpecificReports, 
   getSubmittedReports, 
   reportFilterBySatatus, 
-  updateReports,
+  updateReports, 
+  updateReportStatus,
+  deleteReport, 
+  getAllReportsResearcher, 
+  exportFilteredReports, 
+  getAllReportsDashboard,
+  deleteReport, 
   getRecentReports,
   getTrendData,
   getSpeciesData,
@@ -18,16 +25,24 @@ import {
   getKeyMetrics,
   getHotspots,
   getReports,
-  updateReportStatus
+  updateReportStatusAdmin
 } from "../controller/reportController.js";
 
 const reportRouter = Router();
 
-reportRouter.post("/create", uploadMulter.array("files"), createNewReport);
+reportRouter.post("/create", uploadMulter.array("evidence"), createNewReport);
 reportRouter.get("/getReports", getSubmittedReports);
 reportRouter.get("/getAllReports", getAllReports);
 reportRouter.get("/filteredReport", reportFilterBySatatus);
 reportRouter.get("/incidentType", getIncidentTypes);
+reportRouter.put("/updateReport/:id", uploadMulter.array("evidence"), updateReports);
+reportRouter.delete("/deleteReport/:id", deleteSubmitReport);
+reportRouter.get("/getSpecificReport/:id", getSpecificReports);
+reportRouter.put("/reportAction/:id", updateReportStatus);
+
+// Routes for Species Management
+reportRouter.post("/create", uploadMulter.single("file"), createNewReport);
+reportRouter.post("/exportFilteredReports", exportFilteredReports);
 reportRouter.put("/updateReport", updateReports);
 reportRouter.delete("/deleteReport", deleteReport);
 
@@ -41,6 +56,6 @@ reportRouter.get("/status", getStatusData);
 reportRouter.get("/key-metrics", getKeyMetrics);
 reportRouter.get("/hotspots", getHotspots);
 reportRouter.get("/all-reports", getReports);
-reportRouter.put("/updateStatus/:id", updateReportStatus);
+reportRouter.put("/updateStatus/:id", updateReportStatusAdmin);
 
 export default reportRouter;

@@ -39,6 +39,9 @@ const SpeciesRequestSchema = new mongoose.Schema(
         },
         RequestStatus: {
             type: String
+        },
+        RequestMessage:{
+            type:String
         }
     },
     { timestamps: true }
