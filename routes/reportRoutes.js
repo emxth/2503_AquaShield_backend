@@ -10,7 +10,7 @@ reportRouter.get("/getReports", getSubmittedReports);
 reportRouter.get("/getAllReports", getAllReports);
 reportRouter.get("/filteredReport", reportFilterBySatatus);
 reportRouter.get("/incidentType", getIncidentTypes);
-reportRouter.put("/updateReport/:id", updateReports);
+reportRouter.put("/updateReport/:id", uploadMulter.array("evidence"), updateReports);
 reportRouter.delete("/deleteReport/:id", deleteSubmitReport);
 reportRouter.get("/getSpecificReport/:id", getSpecificReports);
 reportRouter.put("/reportAction/:id", updateReportStatus);

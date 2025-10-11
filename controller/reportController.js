@@ -214,74 +214,110 @@ export const updateReports = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
 
-        console.log("== Update Report ==");
+        const parsedLocation = JSON.parse(req.body.locationInfo);
+        const parsedIncident = JSON.parse(req.body.incidentInfo);
+        const parsedPersonal = JSON.parse(req.body.personalInfo);
 
-        // Parse JSON fields
-        const parsedLocation = JSON.parse(req.body.locationInfo || "{}");
-        const parsedIncident = JSON.parse(req.body.incidentInfo || "{}");
-        const parsedPersonal = JSON.parse(req.body.personalInfo || "{}");
+        console.log("Parsed location:", parsedLocation);
+        console.log("Parsed incident:", parsedIncident);
+        console.log("Parsed personal:", parsedPersonal);
 
-        // Handle coordinates
+        // Check if report exists first
+        const existingReport = await ReportModel.findById(id);
+        if (!existingReport) {
+            return res.status(404).json({
+                success: false,
+                message: "Report not found"
+            });
+        }
+
+        // Handle coordinates safely
         let coordinates;
-        if (parsedLocation.lat && parsedLocation.lng) {
+        if (parsedLocation.lat !== undefined && parsedLocation.lng !== undefined) {
             const lat = parseFloat(parsedLocation.lat);
             const lng = parseFloat(parsedLocation.lng);
             if (!isNaN(lat) && !isNaN(lng)) {
-                coordinates = [lng, lat]; // Mongo expects [lng, lat]
+                coordinates = [lng, lat];
             }
         }
 
-        // Prepare location update
+        // Prepare location update - use existing data as fallback
         let locationUpdate = {
-            description: parsedLocation.description || "Location not specified",
+            description: parsedLocation.description || existingReport.location?.description || "Location not specified",
         };
+
         if (coordinates) {
             locationUpdate.type = "Point";
             locationUpdate.coordinates = coordinates;
+        } else if (existingReport.location?.coordinates) {
+            locationUpdate.type = "Point";
+            locationUpdate.coordinates = existingReport.location.coordinates;
         }
 
-        // Prepare incident update
-        const incidentUpdate = {};
-        if (parsedIncident.incidentType) incidentUpdate.incidentType = parsedIncident.incidentType;
-        if (parsedIncident.species) incidentUpdate.species = parsedIncident.species;
-        if (parsedIncident.description) incidentUpdate.description = parsedIncident.description;
+        // Prepare incident update with fallbacks
+        const incidentUpdate = {
+            incidentType: parsedIncident.incidentType || existingReport.incidentType,
+            species: parsedIncident.species || existingReport.species,
+            description: parsedIncident.description || existingReport.description,
+        };
 
         // Prepare evidence update
-        const newEvidence = req.files
+        const newEvidence = req.files && req.files.length > 0
             ? req.files.map(file => ({
                 url: file.path,
                 public_id: file.filename,
-                resource_type: file.resource_type || (file.mimetype.startsWith('image/') ? 'image' : 'video'),
+                resource_type: file.resource_type || (file.mimetype?.startsWith('image/') ? 'image' : 'video'),
             }))
             : [];
 
-        // Merge existing report's evidence with new evidence
-        const report = await ReportModel.findById(id);
-        if (!report) {
-            return res.status(404).json({ message: "Report not found" });
-        }
-        const updatedEvidence = [...(report.evidencePhotos || []), ...newEvidence];
+        // Merge existing evidence with new evidence
+        const updatedEvidence = [
+            ...(existingReport.evidencePhotos || []),
+            ...newEvidence
+        ];
 
         // Prepare final update object
         const updateData = {
-            "location.description": locationUpdate.description,
-            "location.coordinates": locationUpdate.coordinates,
-            ...incidentUpdate,
+            location: {
+                type: locationUpdate.type,
+                coordinates: locationUpdate.coordinates,
+                description: locationUpdate.description
+            },
+            incidentType: incidentUpdate.incidentType,
+            species: incidentUpdate.species,
+            description: incidentUpdate.description,
             evidencePhotos: updatedEvidence,
-            isAnonymous: parsedPersonal.anonymity ?? report.isAnonymous,
+            isAnonymous: parsedPersonal.anonymity !== undefined ? parsedPersonal.anonymity : existingReport.isAnonymous,
         };
+
+        // Remove undefined fields
+        Object.keys(updateData).forEach(key => {
+            if (updateData[key] === undefined) {
+                delete updateData[key];
+            }
+        });
+
+        console.log("Update data:", updateData);
 
         const updatedReport = await ReportModel.findByIdAndUpdate(
             id,
             { $set: updateData },
-            { new: true }
+            { new: true, runValidators: true }
         );
 
-        res.status(200).json({ message: "Updated Successfully", updatedReport });
+        res.status(200).json({
+            success: true,
+            message: "Report updated successfully",
+            data: updatedReport
+        });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        console.error("Update report error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Error updating report",
+            error: err.message
+        });
     }
 });
 
@@ -325,7 +361,6 @@ export {
     getAllReports,
     reportFilterBySatatus,
     getIncidentTypes,
-
     deleteSubmitReport,
     getSpecificReports,
     updateReportStatus
