@@ -207,48 +207,83 @@ const updateReportStatus = asyncHandler(async (req, res) => {
         data: updateStatus
     });
 
+
 })
 
-const updateReports = asyncHandler(async (req, res) => {
+export const updateReports = asyncHandler(async (req, res) => {
     try {
-
-        const { location, Date, Time, incidentType, species, description, annonymity } = req.body;
         const { id } = req.params;
 
+        console.log("== Update Report ==");
+
+        // Parse JSON fields
+        const parsedLocation = JSON.parse(req.body.locationInfo || "{}");
+        const parsedIncident = JSON.parse(req.body.incidentInfo || "{}");
+        const parsedPersonal = JSON.parse(req.body.personalInfo || "{}");
+
+        // Handle coordinates
+        let coordinates;
+        if (parsedLocation.lat && parsedLocation.lng) {
+            const lat = parseFloat(parsedLocation.lat);
+            const lng = parseFloat(parsedLocation.lng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                coordinates = [lng, lat]; // Mongo expects [lng, lat]
+            }
+        }
+
+        // Prepare location update
+        let locationUpdate = {
+            description: parsedLocation.description || "Location not specified",
+        };
+        if (coordinates) {
+            locationUpdate.type = "Point";
+            locationUpdate.coordinates = coordinates;
+        }
+
+        // Prepare incident update
+        const incidentUpdate = {};
+        if (parsedIncident.incidentType) incidentUpdate.incidentType = parsedIncident.incidentType;
+        if (parsedIncident.species) incidentUpdate.species = parsedIncident.species;
+        if (parsedIncident.description) incidentUpdate.description = parsedIncident.description;
+
+        // Prepare evidence update
+        const newEvidence = req.files
+            ? req.files.map(file => ({
+                url: file.path,
+                public_id: file.filename,
+                resource_type: file.resource_type || (file.mimetype.startsWith('image/') ? 'image' : 'video'),
+            }))
+            : [];
+
+        // Merge existing report's evidence with new evidence
         const report = await ReportModel.findById(id);
-
-        updateData = {};
-
-        if (location) {
-            if (location.description) {
-                updateData["location.description"] = location.description;
-
-            }
-            if (location.coordinates) {
-                updateData["location.coordinates"] = location.coordinates;
-
-            }
-
+        if (!report) {
+            return res.status(404).json({ message: "Report not found" });
         }
-        if (incidentType) {
-            updateData.incidentType = incidentType;
-        }
-        if (species) {
-            updateData.species = species;
-        }
-        if (description) {
-            updateData.description = description;
-        }
+        const updatedEvidence = [...(report.evidencePhotos || []), ...newEvidence];
 
-        const updateReport = await ReportModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+        // Prepare final update object
+        const updateData = {
+            "location.description": locationUpdate.description,
+            "location.coordinates": locationUpdate.coordinates,
+            ...incidentUpdate,
+            evidencePhotos: updatedEvidence,
+            isAnonymous: parsedPersonal.anonymity ?? report.isAnonymous,
+        };
 
-        res.status(200).json({ message: "Update Successfully", updateReport });
+        const updatedReport = await ReportModel.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true }
+        );
+
+        res.status(200).json({ message: "Updated Successfully", updatedReport });
+
     } catch (err) {
         console.error(err);
-        res.status(500).json({ Error: err })
+        res.status(500).json({ error: err.message });
     }
-})
-
+});
 
 const deleteSubmitReport = asyncHandler(async (req, res) => {
     try {
@@ -290,7 +325,7 @@ export {
     getAllReports,
     reportFilterBySatatus,
     getIncidentTypes,
-    updateReports,
+
     deleteSubmitReport,
     getSpecificReports,
     updateReportStatus
