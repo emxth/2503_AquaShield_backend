@@ -15,6 +15,21 @@ const createNewReport = asyncHandler(async (req, res) => {
         const parsedIncident = JSON.parse(req.body.incidentInfo);
         const parsedPersonal = JSON.parse(req.body.personalInfo);
 
+        const currentDate = new Date();
+
+        const incidentDate = parsedIncident.incidentDate && parsedIncident.incidentDate.trim() !== '' ?
+            parsedIncident.incidentDate : currentDate.toISOString().split('T')[0];
+
+        const incidentTime = parsedIncident.incidentTime && parsedIncident.incidentTime.trim() !== ''
+            ? parsedIncident.incidentTime : currentDate.toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+        console.log("📅 Using Date:", incidentDate);
+        console.log("⏰ Using Time:", incidentTime);
         console.log("Longitude:", parsedLocation.lng, "Type:", typeof parsedLocation.lng);
         console.log("Latitude:", parsedLocation.lat, "Type:", typeof parsedLocation.lat);
 
@@ -66,14 +81,14 @@ const createNewReport = asyncHandler(async (req, res) => {
 
         const newIncident = await ReportModel.create({
             reporter: "68ce9ce7fcece28d887e4cf4",
-            isAnonymous: parsedPersonal.annonymity,
+            isAnonymous: parsedPersonal.anonymity,
             location: {
                 type: "Point",
                 coordinates: [parsedLocation.lng, parsedLocation.lat],
                 description: parsedLocation.description
             },
-            date: parsedIncident.incidentDate,
-            time: parsedIncident.incidentTime,
+            date: incidentDate,
+            time: incidentTime,
             incidentType: parsedIncident.incidentType,
             species: parsedIncident.species,
             description: parsedIncident.description,
@@ -145,11 +160,18 @@ const getAllReports = asyncHandler(async (req, res) => {
             return report;
         })
 
-        res.status(200).json(filterReports);
+        res.status(200).json({
+            success: true,
+            data: filterReports
+        });
 
     } catch (err) {
         console.log("Error occured");
-        res.status(500).json({ error: err.message });
+        res.status(500).json({
+            success: false,
+            data: 'Failed to fetch all report types'
+        });
+
     }
 
 })
@@ -157,12 +179,35 @@ const getAllReports = asyncHandler(async (req, res) => {
 const getIncidentTypes = asyncHandler(async (req, res) => {
     try {
         const incidentTypes = ReportModel.schema.path('incidentType').enumValues;
-        res.json(incidentTypes);
+        res.status(200).json({
+            success: true,
+            data: incidentTypes
+        })
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch incident types' });
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch incident types'
+        });
     }
 });
 
+const updateReportStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const report = await ReportModel.findById(id);
+    const updateData = {
+        status: status,
+    };
+
+    const updateStatus = await ReportModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    res.status(200).json({
+        success: true,
+        message: 'Report status updated successfully',
+        data: updateStatus
+    });
+
+})
 
 const updateReports = asyncHandler(async (req, res) => {
     try {
@@ -205,22 +250,39 @@ const updateReports = asyncHandler(async (req, res) => {
 })
 
 
-const deleteReport = asyncHandler(async (req, res) => {
-
+const deleteSubmitReport = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
 
-        const deleteReport = await ReportModel.findByIdAndDelete(id);
-
-        if (!deleteReport) {
-            return res.status(404).json({ success: false, message: "Report not found" })
+        // Validate ID format
+        if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid report ID format"
+            });
         }
 
-        res.status(200).json({ success: true, message: "Report deleted successfully" });
+        const report = await ReportModel.findById(id);
+        if (!report) {
+            return res.status(404).json({
+                success: false,
+                message: "Report not found"
+            });
+        }
+
+        await ReportModel.findByIdAndDelete(id);
+        res.status(200).json({
+            success: true,
+            message: "Report deleted successfully"
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error("Delete report error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
     }
-})
+});
 
 export {
     createNewReport,
@@ -229,6 +291,7 @@ export {
     reportFilterBySatatus,
     getIncidentTypes,
     updateReports,
-    deleteReport,
-    getSpecificReports
+    deleteSubmitReport,
+    getSpecificReports,
+    updateReportStatus
 };
