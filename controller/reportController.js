@@ -27,8 +27,7 @@ const createNewReport = asyncHandler(async (req, res) => {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
-            });
-        } 
+            }); 
 
         const evidence = req.files ? req.files.map(file => ({
             url: file.path,
@@ -73,7 +72,8 @@ const createNewReport = asyncHandler(async (req, res) => {
             error: error.message,
         });
     }
-});
+
+  })
 
 const getSubmittedReports = asyncHandler(async (req, res) => {
 
@@ -186,7 +186,7 @@ const updateReportStatus = asyncHandler(async (req, res) => {
 
 })
 
-export const updateReports = asyncHandler(async (req, res) => {
+const updateReports = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -814,7 +814,6 @@ export {
     reportFilterBySatatus,
     getIncidentTypes,
     updateReports,
-    deleteReport,
     getSpecificReports,
     getRecentReports,
     getTrendData,
@@ -828,8 +827,7 @@ export {
     updateReportStatusAdmin,
     getAllReportsDashboard,
     getAllReportsResearcher,
-    exportFilteredReports
+    exportFilteredReports,
     deleteSubmitReport,
-    getSpecificReports,
     updateReportStatus
 };

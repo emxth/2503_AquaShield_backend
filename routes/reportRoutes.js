@@ -11,11 +11,10 @@ import {
   reportFilterBySatatus, 
   updateReports, 
   updateReportStatus,
-  deleteReport, 
+  // deleteReport, 
   getAllReportsResearcher, 
   exportFilteredReports, 
-  getAllReportsDashboard,
-  deleteReport, 
+  getAllReportsDashboard, 
   getRecentReports,
   getTrendData,
   getSpeciesData,
@@ -44,7 +43,7 @@ reportRouter.put("/reportAction/:id", updateReportStatus);
 reportRouter.post("/create", uploadMulter.single("file"), createNewReport);
 reportRouter.post("/exportFilteredReports", exportFilteredReports);
 reportRouter.put("/updateReport", updateReports);
-reportRouter.delete("/deleteReport", deleteReport);
+// reportRouter.delete("/deleteReport", deleteReport);
 
 // Routes for Admin Dashboard & Analytics
 reportRouter.get("/recent", getRecentReports);

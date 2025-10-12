@@ -25,11 +25,11 @@ import reportRouter from "./routes/reportRoutes.js";
 import notifyRouter from './routes/notificationRoute.js';
 
 // App config
-const app = express();
-const port = process.env.PORT || 8081;
-connectDB();
+// const app = express();
+// const port = process.env.PORT || 8081;
+// connectDB();
 
-dotenv.config();
+// dotenv.config();
 
 app.use(express.json());
 app.use(bodyParser.json());
