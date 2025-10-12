@@ -1,13 +1,13 @@
 import express from 'express'
-import { feoProfile, loginFEO, updateFeoProfile, allFEOsforFEO } from '../controllers/feoController.js'
+import { getFEOProfile, createFEO, updateFEOProfile, getAllFEOs } from '../controllers/feoController.js'
 import authFEO from '../middlewares/authFEO.js'
 
 
 const feoRouter = express.Router()
 
-feoRouter.post('/login',loginFEO)
-feoRouter.get('/profile',authFEO,feoProfile)
-feoRouter.put('/update-profile',authFEO,updateFeoProfile)
-feoRouter.get('/all', authFEO, allFEOsforFEO)
+feoRouter.post('/login',createFEO)
+feoRouter.get('/profile',authFEO,getFEOProfile)
+feoRouter.put('/update-profile',authFEO,updateFEOProfile)
+feoRouter.get('/all', authFEO, getAllFEOs)
 
 export default feoRouter

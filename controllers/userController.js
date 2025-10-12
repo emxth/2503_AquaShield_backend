@@ -1,122 +1,173 @@
-import validator from 'validator'
-import bcrypt from 'bcrypt'
-import userModel from '../models/userModel.js'
-import jwt from 'jsonwebtoken'
-import { v2 as cloudinary } from 'cloudinary'
+import asyncHandler from "express-async-handler";
+import User from "../models/User.js";
+import { cloudinary } from "../config/cloudinary.js";
 
-//API tO register user
-const registerUser = async(req,res) =>{
-    try {
-        const {firstname,lastname,email,password}=req.body
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+export const updateUserProfile = asyncHandler(async (req, res) => {
+  console.log("=== UPDATE PROFILE REQUEST ===");
+  console.log("Body:", req.body);
+  console.log("File:", req.file);
+  console.log("User ID:", req.user?._id);
+  console.log("Headers:", req.headers);
 
-        if(!firstname || !lastname || !email || !password){
-            return res.json({ success: false, message: "Missing details" });
-        }
+  try {
+    const user = await User.findById(req.user._id);
 
-        // Validate email
-        if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a valid email" });
-        }
-
-        // Validate password strength
-        if (password.length < 8) {
-        return res.json({ success: false, message: "Please enter a strong password" });
-        }
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        const userData = {
-            firstname,
-            lastname,
-            email,
-            password: hashedPassword
-        }
-
-        const newUser = new userModel(userData)
-        const user = await newUser.save()
-        
-        const token = jwt.sign({id:user._id}, process.env.JWT_SECRET)
-
-        res.json({success:true,token})
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+    if (!user) {
+      console.error("❌ User not found");
+      return res.status(404).json({ message: "User not found" });
     }
-} 
 
-//API for user login
-const loginUser = async(req,res)=>{
-    try {
-        
-        const {email,password} = req.body
-        const user = await userModel.findOne({email})
-        
-        if(!user){
-            return res.json({success: false, message: 'User does not exist' })
+    console.log("✅ User found:", user.email);
+
+    // Update basic fields
+    user.firstName = req.body.firstName || user.firstName;
+    user.lastName = req.body.lastName || user.lastName;
+    user.email = req.body.email || user.email;
+    user.contactNo = req.body.contactNo || user.contactNo;
+    user.address = req.body.address || user.address;
+
+    console.log("📝 Fields updated");
+
+    // Handle profile image upload
+    if (req.file) {
+      console.log("📂 Processing file upload...");
+      console.log("File details:", {
+        filename: req.file.filename,
+        path: req.file.path,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      });
+
+      // Delete old image from cloudinary if exists
+      if (user.profileImage?.publicId) {
+        console.log("🗑️ Deleting old image:", user.profileImage.publicId);
+        try {
+          await cloudinary.uploader.destroy(user.profileImage.publicId);
+          console.log("✅ Old image deleted");
+        } catch (error) {
+          console.error("❌ Error deleting old image:", error.message);
+          // Continue even if deletion fails
         }
+      }
 
-        const isMatch = await bcrypt.compare(password,user.password)
-
-        if(isMatch){
-            const token = jwt.sign({id:user._id},process.env.JWT_SECRET)
-            res.json({success:true,token})
-        }else{
-            res.json({ success: false, message: "Invalid credentials" });
-        }
-        
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+      // Save new image info
+      user.profileImage = {
+        url: req.file.path,
+        publicId: req.file.filename,
+      };
+      console.log("✅ New image info saved:", user.profileImage);
+    } else {
+      console.log("ℹ️ No file uploaded");
     }
-}
 
-//API to get user profile data
-const getProfile = async(req,res)=>{
+    console.log("💾 Saving user to database...");
+    const updatedUser = await user.save();
+    console.log("✅ User saved successfully");
 
+    res.json({
+      _id: updatedUser._id,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      email: updatedUser.email,
+      contactNo: updatedUser.contactNo,
+      address: updatedUser.address,
+      role: updatedUser.role,
+      profileImage: updatedUser.profileImage,
+    });
+
+    console.log("✅ Response sent successfully");
+  } catch (error) {
+    console.error("=== ERROR IN UPDATE PROFILE ===");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+
+    // Send detailed error to client
+    res.status(500).json({
+      message: error.message || "Failed to update profile",
+      error: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+});
+
+// @desc    Get user profile
+// @route   GET /api/users/profile
+// @access  Private
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password");
+
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
+
+// @desc    Change password - FIXED VERSION
+// @route   PUT /api/users/change-password
+// @access  Private
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error("Please provide current and new password");
+  }
+
+  if (newPassword.length < 8) {
+    res.status(400);
+    throw new Error("New password must be at least 8 characters");
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const isMatch = await user.matchPassword(currentPassword);
+
+  if (!isMatch) {
+    res.status(401);
+    throw new Error("Current password is incorrect");
+  }
+
+  // FIX: Explicitly set and mark password as modified
+  user.password = newPassword;
+  user.markModified("password"); // Ensure mongoose knows the field changed
+  await user.save();
+
+  console.log("✅ Password changed successfully for user:", user.email);
+
+  res.json({ message: "Password updated successfully" });
+});
+
+// @desc    Delete user account
+// @route   DELETE /api/users/profile
+// @access  Private
+export const deleteUserAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  // Delete profile image from cloudinary if exists
+  if (user.profileImage?.publicId) {
     try {
-        
-        const {userId} = req.body
-        const userData = await userModel.findById(userId).select('-password')
-
-        res.json({ success: true, userData });
-
+      await cloudinary.uploader.destroy(user.profileImage.publicId);
+      console.log("✅ Profile image deleted from Cloudinary");
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+      console.error("❌ Error deleting image:", error);
     }
-}
+  }
 
-//API to update user profile
-const updateProfile = async (req,res) =>{
-    try {
-
-        const {userId,firstname,lastname,email} = req.body
-        const imageFile = req.file
-
-        if(!firstname || !lastname || !email){
-            return res.json({success: false, message: 'Data missing' })
-        }
-
-        await userModel.findByIdAndUpdate(userId,{firstname,lastname,email})
-        
-        if(imageFile){
-            //Upload image to cloudinary
-            const imageUpload = await cloudinary.uploader.upload(imageFile.path,{resource_type:'image'})
-            const imageURL = imageUpload.secure_url
-
-            await userModel.findByIdAndUpdate(userId,{image:imageURL})
-        }
-
-        res.json({success: true, message: "Profile Updated" })
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-}
-
-
-export {registerUser,loginUser,getProfile,updateProfile}
+  await user.deleteOne();
+  res.json({ message: "User account deleted successfully" });
+});
