@@ -38,6 +38,8 @@ reportRouter.put("/updateReport/:id", uploadMulter.array("evidence"), updateRepo
 reportRouter.delete("/deleteReport/:id", deleteSubmitReport);
 reportRouter.get("/getSpecificReport/:id", getSpecificReports);
 reportRouter.put("/reportAction/:id", updateReportStatus);
+reportRouter.get("/getAllReportsDashboard", getAllReportsDashboard);
+reportRouter.get("/getAllReportsResearcher", getAllReportsResearcher);
 
 // Routes for Species Management
 reportRouter.post("/create", uploadMulter.single("file"), createNewReport);
