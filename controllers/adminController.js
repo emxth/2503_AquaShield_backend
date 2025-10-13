@@ -4,6 +4,8 @@ import { v2 as cloudinary } from "cloudinary";
 import feoModel from "../models/feoModel.js";
 import jwt from 'jsonwebtoken'
 import userModel from "../models/userModel.js";
+import accountDeletionModel from "../models/accountDeletionModel.js";
+
 
 // API for adding FEO
 const addfeo = async (req, res) => {
@@ -126,4 +128,42 @@ const getAllUsers = async (req, res) => {
   }
 }
 
-export { addfeo,loginAdmin,allFEOs,getAllUsers };
+// Get all account deletion requests
+// Get all account deletion requests
+const getAllAccountDeletions = async (req, res) => {
+  try {
+    const requests = await accountDeletionModel.find().sort({ requestedDate: -1 });
+    res.json({ success: true, deletions: requests }); // ✅ fixed
+  } catch (error) {
+    console.error("Error fetching deletions:", error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+
+// Update account deletion status (accept/reject)
+const updateDeletionStatus = async (req, res) => {
+  try {
+    const { id, status } = req.body; // id = request id, status = accepted/rejected
+
+    const request = await accountDeletionModel.findById(id);
+    if (!request) {
+      return res.json({ success: false, message: "Request not found" });
+    }
+
+    request.status = status;
+    await request.save();
+
+    // If accepted, delete user
+    if (status === "accepted") {
+      await userModel.findByIdAndDelete(request.userId);
+    }
+
+    res.json({ success: true, message: `Request ${status} successfully` });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+ };
+
+
+export { addfeo,loginAdmin,allFEOs,getAllUsers,getAllAccountDeletions, updateDeletionStatus };
