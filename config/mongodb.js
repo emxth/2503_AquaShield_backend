@@ -16,7 +16,7 @@ const connectDB = async () => {
     });
 
     // Important: Add connection options for stable connection
-    await mongoose.connect(`${process.env.MONGODB_URI}/AquaShield`, {
+    await mongoose.connect(`${process.env.MONGODB_URI}/AquaShield?retryWrites=true&w=majority&appName=Cluster0`, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000, // 10s timeout

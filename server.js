@@ -15,6 +15,7 @@ import speciesRoutes from "./routes/speciesRoutes.js";
 import speciesRequestRoutes from "./routes/speciesRequestRoutes.js";
 // import { reportRouter } from "./routes/reportRoutes.js";
 import favoriteRoutes from './routes/favoritesRoutes.js';
+import passwordRouter from "./routes/passwordRoute.js";
 
 
 // console.log("Mongo URI:", process.env.MONGODB_URL);  
@@ -30,7 +31,7 @@ import notifyRouter from './routes/notificationRoute.js';
 // connectDB();
 
 // dotenv.config();
-
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(bodyParser.json());
 
@@ -46,6 +47,7 @@ app.use('/api/feo', feoRouter);
 app.use('/api/report', reportRouter);
 app.use("/api/species", speciesRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use("/api/password", passwordRouter);
 
 // Species Management Routes
 app.use("/species", speciesRoutes);
