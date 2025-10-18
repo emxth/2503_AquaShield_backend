@@ -33,7 +33,7 @@ const app = express()
 //app.use(express.json());
 //app.use(bodyParser.json());
 
-//const port = process.env.PORT || 8081
+const port = process.env.PORT || 8081
 connectDB()
 //connectCloudinary()
 dotenv.config();

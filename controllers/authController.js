@@ -292,3 +292,29 @@ export const getMe = asyncHandler(async (req, res) => {
     });
   }
 });
+
+export const loginResearcher = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email, role: "researcher" });
+
+  if (user && (await user.matchPassword(password))) {
+    if (!user.isActive) {
+      res.status(403);
+      throw new Error("Account is deactivated");
+    }
+
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      profileImage: user.profileImage,
+      token: generateToken(user._id, "user"),
+    });
+  } else {
+    res.status(401);
+    throw new Error("Invalid researcher credentials");
+  }
+});

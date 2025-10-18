@@ -10,6 +10,7 @@ import {
   facebookCallback,
   getMe,
   googleSignIn, // NEW
+  loginResearcher
 } from "../controllers/authController.js";
 import {
   forgotPassword,
@@ -26,6 +27,7 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/feo-login", loginFEO);
 router.post("/admin-login", loginAdmin);
+router.post("/researcher-login", loginResearcher);
 
 // NEW: Mobile Google Sign In
 router.post("/google", googleSignIn);
