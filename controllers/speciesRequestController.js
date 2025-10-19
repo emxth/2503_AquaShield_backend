@@ -58,7 +58,7 @@ export const addSpeciesRequest = async (req, res) => {
       Description: description,
       RequestStatus: requestStatus
     });
-
+    
     await newSpeciesRequest.save();
     res.status(201).json({ message: "Species request added successfully", data: newSpeciesRequest });
   } catch (error) {

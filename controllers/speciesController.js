@@ -3,61 +3,10 @@ import cloudinary from "../config/speciesCloudinary.js";
 import streamifier from "streamifier";
 import SpeciesHistory from "../models/speciesHistoryModel.js";
 import axios from "axios";
-
-//-----
 import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 
-// Helper function: Create and send a PDF
-// const generatePDFReport = async (res, title, data) => {
-//   try {
-//     const doc = new PDFDocument({ margin: 40 });
-//     const filename = `${title.replace(/\s/g, "_")}.pdf`;
-//     const filePath = path.join("uploads", filename);
-
-//     // Ensure folder exists
-//     if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
-
-//     const stream = fs.createWriteStream(filePath);
-//     doc.pipe(stream);
-
-//     // Title
-//     doc.fontSize(20).fillColor("#146C94").text(title, { align: "center" });
-//     doc.moveDown(1);
-
-//     // Table headers
-//     doc.fontSize(12).fillColor("black");
-//     doc.text("Scientific Name", 50, doc.y, { continued: true });
-//     doc.text("Common Name", 200, doc.y, { continued: true });
-//     doc.text("Category", 350, doc.y, { continued: true });
-//     doc.text("Protection Level", 450, doc.y);
-//     doc.moveDown(0.5);
-//     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-//     doc.moveDown(0.8);
-
-//     // Data rows
-//     data.forEach((s) => {
-//       doc.text(s.ScientificName || "-", 50, doc.y, { continued: true });
-//       doc.text(s.CommonName || "-", 200, doc.y, { continued: true });
-//       doc.text(s.SpeciesCategory || "-", 350, doc.y, { continued: true });
-//       doc.text(s.ProtectionLevel || "-", 450, doc.y);
-//       doc.moveDown(0.5);
-//     });
-
-//     doc.end();
-
-//     stream.on("finish", () => {
-//       res.download(filePath, filename, (err) => {
-//         if (err) console.error("PDF download error:", err);
-//         fs.unlinkSync(filePath); // delete after sending
-//       });
-//     });
-//   } catch (error) {
-//     console.error("PDF generation error:", error);
-//     res.status(500).json({ message: "Error generating PDF report", error });
-//   }
-// };
 export const generatePDFReport = async (res, title, data) => {
   try {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
@@ -131,7 +80,7 @@ export const generatePDFReport = async (res, title, data) => {
         });
       }
 
-      // Image (optional)
+      // Image 
       if (s.ImageURL) {
         try {
           const imagePath = s.ImageURL.startsWith("http")
