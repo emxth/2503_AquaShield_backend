@@ -129,7 +129,6 @@ const getAllUsers = async (req, res) => {
 }
 
 // Get all account deletion requests
-// Get all account deletion requests
 const getAllAccountDeletions = async (req, res) => {
   try {
     const requests = await accountDeletionModel.find().sort({ requestedDate: -1 });
@@ -144,26 +143,29 @@ const getAllAccountDeletions = async (req, res) => {
 // Update account deletion status (accept/reject)
 const updateDeletionStatus = async (req, res) => {
   try {
-    const { id, status } = req.body; // id = request id, status = accepted/rejected
+    const { id, status } = req.body;
+    if (!id || !status) return res.status(400).json({ success: false, message: "Missing id or status" });
 
     const request = await accountDeletionModel.findById(id);
-    if (!request) {
-      return res.json({ success: false, message: "Request not found" });
-    }
+    if (!request) return res.status(404).json({ success: false, message: "Request not found" });
 
     request.status = status;
-    await request.save();
 
-    // If accepted, delete user
-    if (status === "accepted") {
-      await userModel.findByIdAndDelete(request.userId);
+    // ✅ Only delete the user if accepted
+    if (status.toLowerCase() === "accepted") {
+      const user = await userModel.findById(request.userId);
+      if (user) await user.remove(); // triggers Mongoose middleware
     }
+
+    await request.save(); // Save status change in admin table
 
     res.json({ success: true, message: `Request ${status} successfully` });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("Update Deletion Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
- };
+};
+
 
 
 export { addfeo,loginAdmin,allFEOs,getAllUsers,getAllAccountDeletions, updateDeletionStatus };

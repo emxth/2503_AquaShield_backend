@@ -10,7 +10,8 @@ adminRouter.post('/login',loginAdmin)
 adminRouter.post('/all-feos',authAdmin,allFEOs)
 adminRouter.get('/all-users', authAdmin, getAllUsers)
 adminRouter.get('/all-deletions', authAdmin, getAllAccountDeletions)
-adminRouter.post('/update-deletion-status', authAdmin, updateDeletionStatus)
+adminRouter.put('/update-deletion-status', authAdmin, updateDeletionStatus)
+
 
 
 export default adminRouter
