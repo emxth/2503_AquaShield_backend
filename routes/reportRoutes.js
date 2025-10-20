@@ -1,20 +1,20 @@
 import { Router } from "express";
 import { uploadMulter } from "../middleware/uploadMulter.js";
 import _default from "validator";
-import { 
-  createNewReport, 
-  deleteSubmitReport, 
-  getAllReports, 
-  getIncidentTypes, 
-  getSpecificReports, 
-  getSubmittedReports, 
-  reportFilterBySatatus, 
-  updateReports, 
+import {
+  createNewReport,
+  deleteSubmitReport,
+  getAllReports,
+  getIncidentTypes,
+  getSpecificReports,
+  getSubmittedReports,
+  reportFilterBySatatus,
+  updateReports,
   updateReportStatus,
   // deleteReport, 
-  getAllReportsResearcher, 
-  exportFilteredReports, 
-  getAllReportsDashboard, 
+  getAllReportsResearcher,
+  exportFilteredReports,
+  getAllReportsDashboard,
   getRecentReports,
   getTrendData,
   getSpeciesData,
@@ -30,7 +30,7 @@ import {
 const reportRouter = Router();
 
 reportRouter.post("/create", uploadMulter.array("evidence"), createNewReport);
-reportRouter.get("/getReports", getSubmittedReports);
+reportRouter.get("/getReports/:userID", getSubmittedReports);
 reportRouter.get("/getAllReports", getAllReports);
 reportRouter.get("/filteredReport", reportFilterBySatatus);
 reportRouter.get("/incidentType", getIncidentTypes);
