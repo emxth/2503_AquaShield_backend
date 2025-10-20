@@ -24,7 +24,10 @@ import {
   getKeyMetrics,
   getHotspots,
   getReports,
-  updateReportStatusAdmin
+  updateReportStatusAdmin,
+  getSpeciesStats,
+  getUniqueSpecies,
+  getUniqueRegions
 } from "../controller/reportController.js";
 
 const reportRouter = Router();
@@ -55,8 +58,11 @@ reportRouter.get("/monthly-stats", getMonthlyStats);
 reportRouter.get("/frequency", getMonthlyFrequency);
 reportRouter.get("/status", getStatusData);
 reportRouter.get("/key-metrics", getKeyMetrics);
+reportRouter.get('/species-stats', getSpeciesStats);
 reportRouter.get("/hotspots", getHotspots);
 reportRouter.get("/all-reports", getReports);
 reportRouter.put("/updateStatus/:id", updateReportStatusAdmin);
+reportRouter.get('/unique-species', getUniqueSpecies);
+reportRouter.get('/unique-regions', getUniqueRegions);
 
 export default reportRouter;
