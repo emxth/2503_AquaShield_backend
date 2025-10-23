@@ -1,52 +1,47 @@
 import feoModel from "../models/feoModel.js";
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 //API for feo login
-const loginFEO = async(req,res)=>{
+const loginFEO = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const feo = await feoModel.findOne({ email });
 
-    try {
-        
-        const {email,password} = req.body
-        const feo = await feoModel.findOne({email})
-
-        if(!feo){
-            return res.json({success: false, message: "Invalid credentials"})
-        }
-
-        const isMatch = await bcrypt.compare(password,feo.password)
-
-        if(isMatch){
-
-            const token = jwt.sign({id:feo._id},process.env.JWT_SECRET)
-
-            res.json({success:true,token})
-        }else{
-            res.json({success: false, message: "Invalid credentials"})
-        }
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+    if (!feo) {
+      return res.json({ success: false, message: "Invalid credentials" });
     }
-}
+
+    const isMatch = await bcrypt.compare(password, feo.password);
+
+    if (isMatch) {
+      const token = jwt.sign({ id: feo._id }, process.env.JWT_SECRET);
+
+      res.json({ success: true, token });
+    } else {
+      res.json({ success: false, message: "Invalid credentials" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 //API to get feo profile
 const feoProfile = async (req, res) => {
   try {
-    const feoId = req.feoId;   // 👈 use req.feoId, not req.body
-    const profileData = await feoModel.findById(feoId).select('-password');
+    const feoId = req.feoId; // 👈 use req.feoId, not req.body
+    const profileData = await feoModel.findById(feoId).select("-password");
     res.json({ success: true, profileData });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-//API to update feo profile 
+//API to update feo profile
 const updateFeoProfile = async (req, res) => {
   try {
-    const feoId = req.feoId;   // 👈 take from middleware
+    const feoId = req.feoId; // 👈 take from middleware
 
     const { email, officeContact } = req.body;
 
@@ -70,15 +65,53 @@ const updateFeoProfile = async (req, res) => {
   }
 };
 //API to get all FEO list for feo panel
-const allFEOsforFEO = async (req,res)=>{
-    try {
-        const feos = await feoModel.find({}).select('-password')
-        res.json({success: true, feos})
-        
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-}
+const allFEOsforFEO = async (req, res) => {
+  try {
+    const feos = await feoModel.find({}).select("-password");
+    res.json({ success: true, feos });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-export {loginFEO,feoProfile,updateFeoProfile,allFEOsforFEO}
+const changeFeoPassword = async (req, res) => {
+  try {
+    const feoId = req.feoId; // ✅ taken from auth middleware
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.json({ success: false, message: "All fields are required" });
+    }
+
+    const feo = await feoModel.findById(feoId);
+    if (!feo) {
+      return res.json({ success: false, message: "FEO not found" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, feo.password);
+    if (!isMatch) {
+      return res.json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    feo.password = hashedPassword;
+    await feo.save();
+
+    res.json({ success: true, message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Change Password Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export {
+  loginFEO,
+  feoProfile,
+  updateFeoProfile,
+  allFEOsforFEO,
+  changeFeoPassword,
+};
