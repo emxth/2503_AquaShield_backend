@@ -6,6 +6,7 @@ import {
   updateProfile,
   changePassword,
   requestAccountDeletion,
+  checkDeletionRequest,
 } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
 import upload from "../middlewares/multer.js";
@@ -22,6 +23,7 @@ userRouter.put(
   updateProfile
 );
 userRouter.post("/request-delete", authUser, requestAccountDeletion);
+userRouter.get("/check-deletion-request", authUser, checkDeletionRequest);
 userRouter.post("/change-password", authUser, changePassword);
 
 export default userRouter;

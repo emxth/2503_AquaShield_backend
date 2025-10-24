@@ -159,6 +159,7 @@ const getAllAccountDeletions = async (req, res) => {
 };
 
 // Update account deletion status (accept/reject)
+// Update account deletion status (accept/reject)
 const updateDeletionStatus = async (req, res) => {
   try {
     const { id, status } = req.body;
@@ -175,14 +176,13 @@ const updateDeletionStatus = async (req, res) => {
 
     request.status = status;
 
-    // ✅ Only delete the user if accepted
+    // ✅ Permanently delete the user if accepted
     if (status.toLowerCase() === "accepted") {
-      const user = await userModel.findById(request.userId);
-      if (user) await user.remove(); // triggers Mongoose middleware
+      const user = await userModel.findOne({ email: request.email });
+      if (user) await user.deleteOne(); // deletes user permanently
     }
 
-    await request.save(); // Save status change in admin table
-
+    await request.save(); // Save status change
     res.json({ success: true, message: `Request ${status} successfully` });
   } catch (error) {
     console.error("Update Deletion Error:", error);

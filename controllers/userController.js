@@ -5,46 +5,43 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import accountDeletionModel from "../models/accountDeletionModel.js";
 
-//API tO register user
+// Register user
 const registerUser = async (req, res) => {
   try {
-    const { firstname, lastname, email, password } = req.body;
+    const { firstname, lastname, email, contactNo, password, address } =
+      req.body; // include address
 
-    if (!firstname || !lastname || !email || !password) {
+    if (!firstname || !lastname || !email || !contactNo || !password) {
       return res.json({ success: false, message: "Missing details" });
     }
 
-    // Validate email
     if (!validator.isEmail(email)) {
-      return res.json({
-        success: false,
-        message: "Please enter a valid email",
-      });
+      return res.json({ success: false, message: "Invalid email" });
     }
 
-    // Validate password strength
     if (password.length < 8) {
-      return res.json({
-        success: false,
-        message: "Please enter a strong password",
-      });
+      return res.json({ success: false, message: "Password too short" });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      await bcrypt.genSalt(10)
+    );
 
-    const userData = {
+    const newUser = new userModel({
       firstname,
       lastname,
       email,
+      contactNo,
       password: hashedPassword,
-    };
+      address: address || "", // set address if provided, else empty string
+    });
 
-    const newUser = new userModel(userData);
     const user = await newUser.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({ success: true, token });
   } catch (error) {
@@ -53,27 +50,18 @@ const registerUser = async (req, res) => {
   }
 };
 
-//API for user login
+// Login user
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Find user
     const user = await userModel.findOne({ email });
-    if (!user) {
-      return res.json({
-        success: false,
-        message: "Invalid credentials or account deleted",
-      });
-    }
-
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (!user)
       return res.json({ success: false, message: "Invalid credentials" });
-    }
 
-    // Create JWT token
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.json({ success: false, message: "Invalid credentials" });
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -84,40 +72,37 @@ const loginUser = async (req, res) => {
   }
 };
 
-//API to get user profile data
+// Get profile
 const getProfile = async (req, res) => {
   try {
-    const userData = await userModel.findById(req.userId).select("-password");
-
-    if (!userData) {
+    const user = await userModel.findById(req.userId).select("-password");
+    if (!user)
       return res
         .status(404)
-        .json({ success: false, message: "User not found or deleted" });
-    }
-
-    res.json({ success: true, userData });
+        .json({ success: false, message: "User not found" });
+    res.json({ success: true, userData: user });
   } catch (error) {
     console.error(error);
     res.json({ success: false, message: error.message });
   }
 };
 
-//API to update user profile
+// Update profile
 const updateProfile = async (req, res) => {
   try {
     const { firstname, lastname, contactNo, email, address } = req.body;
     const imageFile = req.file;
 
-    if (!firstname || !lastname || !contactNo || !email || !address) {
+    if (!firstname || !lastname || !contactNo || !email) {
       return res.json({ success: false, message: "Data missing" });
     }
 
-    let updateData = {
+    const updateData = {
       firstname,
       lastname,
       contactNo,
       email,
-      address: JSON.parse(address),
+      address: address || "", // keep as string
     };
 
     if (imageFile) {
@@ -142,41 +127,31 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// API to change password
+// Change password
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
+    if (!currentPassword || !newPassword)
       return res.json({ success: false, message: "Missing password fields" });
-    }
 
     const user = await userModel.findById(req.userId);
-    if (!user) {
-      return res.json({ success: false, message: "User not found" });
-    }
+    if (!user) return res.json({ success: false, message: "User not found" });
 
-    // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
+    if (!isMatch)
       return res.json({
         success: false,
         message: "Current password is incorrect",
       });
-    }
 
-    // Prevent reuse of the same password
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
+    if (isSamePassword)
       return res.json({
         success: false,
-        message: "New password cannot be the same as current password",
+        message: "New password cannot be same as current",
       });
-    }
 
-    // Hash and save new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    user.password = hashedPassword;
+    user.password = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
     await user.save();
 
     res.json({ success: true, message: "Password changed successfully" });
@@ -192,30 +167,48 @@ const requestAccountDeletion = async (req, res) => {
     const user = await userModel
       .findById(req.userId)
       .select("firstname lastname email");
-    if (!user) {
-      return res.json({ success: false, message: "User not found" });
-    }
+    if (!user) return res.json({ success: false, message: "User not found" });
 
-    // Prevent duplicate requests
     const existingRequest = await accountDeletionModel.findOne({
       email: user.email,
       status: "Pending",
     });
-    if (existingRequest) {
+    if (existingRequest)
       return res.json({
         success: false,
         message: "Deletion request already submitted",
       });
-    }
 
     const newRequest = new accountDeletionModel({
       firstname: user.firstname,
       lastname: user.lastname,
       email: user.email,
     });
-
     await newRequest.save();
+
     res.json({ success: true, message: "Account deletion request submitted" });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+// Check deletion request
+const checkDeletionRequest = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.userId).select("email");
+    if (!user) return res.json({ success: false, message: "User not found" });
+
+    const existingRequest = await accountDeletionModel
+      .findOne({ email: user.email })
+      .sort({ createdAt: -1 });
+    const status = existingRequest ? existingRequest.status : null;
+
+    res.json({
+      success: true,
+      hasPendingRequest: status === "Pending",
+      status,
+    });
   } catch (error) {
     console.error(error);
     res.json({ success: false, message: error.message });
@@ -229,4 +222,5 @@ export {
   updateProfile,
   changePassword,
   requestAccountDeletion,
+  checkDeletionRequest,
 };
