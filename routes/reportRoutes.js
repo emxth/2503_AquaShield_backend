@@ -25,7 +25,7 @@ import {
   getHotspots,
   getReports,
   updateReportStatusAdmin
-} from "../controller/reportController.js";
+} from "../controllers/reportController.js";
 
 const reportRouter = Router();
 

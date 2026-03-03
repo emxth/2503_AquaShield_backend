@@ -17,7 +17,7 @@ export const generatePDFReport = async (res, title, data) => {
     const stream = fs.createWriteStream(filePath);
     doc.pipe(stream);
 
-    // ===== HEADER =====
+    // HEADER
     doc.rect(0, 0, doc.page.width, 70).fill("#146C94");
     doc
       .fillColor("#ffffff")
@@ -27,7 +27,7 @@ export const generatePDFReport = async (res, title, data) => {
     doc.moveDown(2);
     doc.fillColor("#000000").font("Helvetica");
 
-    // ===== TITLE =====
+    //TITLE
     doc.moveDown(1.5);
     doc
       .fontSize(20)
@@ -45,7 +45,7 @@ export const generatePDFReport = async (res, title, data) => {
       .stroke("#19A7CE");
     doc.moveDown(1);
 
-    // ===== SPECIES CARDS =====
+    // SPECIES CARDS
     data.forEach((s, index) => {
       // Card background
       doc
@@ -179,7 +179,7 @@ export const addSpecies = async (req, res) => {
 
     let imageURL = "";
 
-    //upload to cloudinary as a stram - it is stored in buffer bu multer
+    //upload to cloudinary as a stream - it is stored in buffer multer
     if (req.file) {
       const streamUpload = (req) => {
         return new Promise((resolve, reject) => {
